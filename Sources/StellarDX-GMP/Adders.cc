@@ -33,6 +33,7 @@
 
 #include "StellarMath/StellarDX-GMP/Adders.h"
 #include <simd> // SIMD
+#include <stdexcept>
 #include <immintrin.h> // AVX-512
 
 _ALU_BEGIN
@@ -71,17 +72,17 @@ void GMP_SerialAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView
 
 void CarryLookaheadParallelAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF)
 {
-    Panic("CarryLookaheadParallelAdder：已废弃特性");
+    Panic<std::runtime_error>("CarryLookaheadParallelAdder：已废弃特性");
 }
 
 void SIMD_ParallelAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF)
 {
-    Panic("SIMD_ParallelAdder：待实现");
+    Panic<std::runtime_error>("SIMD_ParallelAdder：待实现");
 }
 
 void AVX512_ParallelAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF)
 {
-    Panic("AVX512_ParallelAdder：待实现");
+    Panic<std::runtime_error>("AVX512_ParallelAdder：待实现");
 }
 
 _ADDER_END

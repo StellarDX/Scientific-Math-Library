@@ -55,9 +55,9 @@
 #define _754_END }
 #define _754 IEEE754::
 
-#define _80000_BEGIN namespace ISO80000_2 {
+#define _80000_BEGIN namespace ISOMath {
 #define _80000_END }
-#define _80000 ISO80000_2::
+#define _80000 ISOMath::
 
 #if (!defined _EXTERN_C) && (!defined _END_EXTERN_C)
 #define _EXTERN_C extern "C" {

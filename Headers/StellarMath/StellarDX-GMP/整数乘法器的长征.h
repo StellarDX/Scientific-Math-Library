@@ -189,10 +189,46 @@ _MULTIPLIER_BEGIN
         https://books.google.com.hk/books?id=iqgPe49fhrsC.
     [2] 张建妮.基于FPGA的8位移位相加型硬件乘法器的设计[J].智能计算机与应用, 2014,
         4(4):4.DOI:10.3969/j.issn.2095-2163.2014.04.025.
-*/
 
+    @fn void GMP_SingleBlkLongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)
+    @param DST 积
+    @param AX  乘数1
+    @param BX  乘数2
+    
+    @fn GMP_LongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)
+    @param DST 积
+    @param AX  乘数1
+    @param BX  乘数2
+*/
+void GMP_SingleBlkLongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockType BX);
+void GMP_LongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX);
+
+/**
+    @brief 图姆-库克乘法器
+    @ingroup Multipliers
+
+    
+ */
+__interface ToomCookMultipliers
+{
+    // TODO...
+};
+
+/**
+    @brief FFT乘法器
+    @ingroup Multipliers
+ */
+class FFTMultiplier
+{
+    // TODO...
+};
 
 _MULTIPLIER_END
+
+using SingleBlkMulFuncType = void(BlockArrayView DST, BlockArraySrcView AX, BlockType BX);
+using MultiplierFuncType = void(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX);
+using SingleBlkMulFuncPtr = SingleBlkMulFuncType*;
+using MultiplierFuncPtr = MultiplierFuncType*;
 
 _ALU_END
 

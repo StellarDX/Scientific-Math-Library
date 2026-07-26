@@ -31,6 +31,7 @@
  * If not, see https://www.gnu.org/licenses/.
  */
 
+#include <ranges>
 #include "StellarMath/StellarDX-GMP/SMLDefs.h"
 #include "StellarMath/StellarDX-GMP/整数乘法器的长征.h"
 
@@ -67,5 +68,35 @@ void MULSBB(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF
     }
     if (CF) {*CF = C;}
 }
+
+_MULTIPLIER_BEGIN
+
+void GMP_SingleBlkLongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)
+{
+    BlockType C = 0;
+    for (size_t i = 0; i < AX.size(); ++i)
+    {
+        ExtBlockType P64 = ExtBlockType(AX.at(i)) * BX + C;
+        C = P64 >> BSIZE;
+        DST.at(i) = BlockType(P64);
+    }
+    DST.at(AX.size()) = C;
+}
+
+void GMP_LongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)
+{
+    auto DSLIDE = DST | std::ranges::views::slide(AX.size() + 1);
+    auto DI = DSLIDE.begin();
+    GMP_SingleBlkLongMultiplier(*DI, AX, BX.front());
+    for (size_t i = 1; i < BX.size(); ++i)
+    {
+        ++DI;
+        MULADC(*DI, AX, BX.at(i), &((*DI).back()));
+    }
+}
+
+_MULTIPLIER_END
+
+
 
 _ALU_END
