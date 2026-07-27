@@ -58,3 +58,4 @@ deploy/
 *.TMP
 *.code-workspace
 *cache
+.vscode
