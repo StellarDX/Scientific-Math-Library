@@ -32,7 +32,7 @@
  */
 
 #include "StellarMath/StellarDX-GMP/Adders.h"
-#include <simd> // SIMD
+//#include <simd> // SIMD
 #include <stdexcept>
 #include <immintrin.h> // AVX-512
 

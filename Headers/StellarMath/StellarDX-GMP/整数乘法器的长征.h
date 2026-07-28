@@ -181,7 +181,8 @@ _MULTIPLIER_BEGIN
     了二进制的乘法。不过竖式乘法器也有它的局限性，就是它的时间复杂度较高，因为它的算法是按照顺
     序把一个乘数的每一位或每一块与另一个乘数的所有位或所有块相乘后加起来（进位处理），这样得到
     的时间复杂度就是O(n^2)。这意味着这一算法在位数或块数很小的时候速度还能接受，当块数一多计
-    算量就会炸，因此如何优化乘法器的算法到目前仍是一个待解决的问题。
+    算量就会炸。例如计算两个10亿（1E9）块的乘法，需要100京（1E18）步才能完成，用现在的计算机
+    需要30年才能得到结果。因此如何优化乘法器的算法到目前仍是一个待解决的问题。
 
     @par 参考文献
     [1]	Pacioli L. Summa de Arithmetica geometria proportioni : et 
@@ -204,10 +205,25 @@ void GMP_SingleBlkLongMultiplier(BlockArrayView DST, BlockArraySrcView AX, Block
 void GMP_LongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX);
 
 /**
-    @brief 图姆-库克乘法器
+    @brief 图姆-库克分治乘法器
     @ingroup Multipliers
 
-    
+    @details 1960年，俄罗斯数学家安德雷·尼古拉耶维奇·柯尔莫哥洛夫举行了一次研讨会，他在那场
+    会上断言n^2是乘法运算最少需要的步数且不存在步数更少的算法，而一个学生Карацуба, Анатолий 
+    Алексеевич提出了不同的意见并于一周后提出了划时代的Karatsuba算法。以计算1234*567为例，
+    Karatsuba算法的计算过程如下：
+     1. 将1234和567按块大小Bs = 2位分解成A = (34, 12)和B = (67, 5)   --此处使用LE
+     2. 将A，B两个数组下标相同的元素相乘，得O = 34 * 67 = 2278, T = 12 * 5 = 60
+     3. 将第2步得到的结果O和T相加，得S = 2278 + 60 = 2338
+     4. 将A，B两个数组的每一项加起来，然后得到的结果相乘相乘，得P = (34 + 12) * (67 + 5) = 46 * 72 = 3312
+     5. 将第3, 4步得到的结果S和P相减，得D = 3312 - 2338 = 974
+     6. 将第2步得到的结果O，T和第5步得到的结果D，按公式(T << (2 * Bs)) + (D << Bs) + (O)组合，得到最终结果600000 + 97400 + 2278 = 699678
+
+
+    @par 参考文献
+    [1] Karatsuba A , Ofman Y .Multiplication of Many-Digital Numbers by Automatic 
+        Computers[J].Dokl. Akad. Nauk SSSR, 1962, 1962, 145(2):293–294.
+        DOI:10.1016/S0022-5320(61)80017-8.
  */
 __interface ToomCookMultipliers
 {
@@ -215,13 +231,15 @@ __interface ToomCookMultipliers
 };
 
 /**
-    @brief FFT乘法器
+    @brief FFT高速乘法器
     @ingroup Multipliers
  */
 class FFTMultiplier
 {
     // TODO...
 };
+
+class 
 
 _MULTIPLIER_END
 
