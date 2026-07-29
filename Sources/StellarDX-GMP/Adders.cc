@@ -32,7 +32,11 @@
  */
 
 #include "StellarMath/StellarDX-GMP/Adders.h"
-//#include <simd> // SIMD
+#if __GNUC__ >= 16
+#include <simd> // SIMD
+#else
+#include <experimental/simd>
+#endif
 #include <stdexcept>
 #include <immintrin.h> // AVX-512
 

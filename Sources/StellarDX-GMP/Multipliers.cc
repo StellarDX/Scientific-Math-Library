@@ -71,7 +71,7 @@ void MULSBB(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF
 
 _MULTIPLIER_BEGIN
 
-void GMP_SingleBlkLongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)
+void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)
 {
     BlockType C = 0;
     for (size_t i = 0; i < AX.size(); ++i)
@@ -83,11 +83,11 @@ void GMP_SingleBlkLongMultiplier(BlockArrayView DST, BlockArraySrcView AX, Block
     DST.at(AX.size()) = C;
 }
 
-void GMP_LongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)
+void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)
 {
     auto DSLIDE = DST | std::ranges::views::slide(AX.size() + 1);
     auto DI = DSLIDE.begin();
-    GMP_SingleBlkLongMultiplier(*DI, AX, BX.front());
+    Run(*DI, AX, BX.front());
     for (size_t i = 1; i < BX.size(); ++i)
     {
         ++DI;

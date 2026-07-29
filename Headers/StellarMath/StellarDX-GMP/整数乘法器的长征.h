@@ -1,6 +1,6 @@
 /**
     @file 整数乘法器的长征.h
-    @defgroup Multipliers 整数乘法器的长征
+    @defgroup Multipliers 乘法器
     @ingroup IPN
 
     @details 早在几千年前，商朝人就开始用十进制计数，四则运算也就应运而生。但那时的数学刚刚成
@@ -120,9 +120,9 @@
     样的分数运算，证实了当时已存在分数的概念与应用。
 
     @par 参考文献
-    [1] 饶权,张柏春.格致·考工·源流:中国古代科技发明创造[M].北京大学出版社,2020.
+    [1] 饶权,张柏春.格致·考工·源流:中国古代科技发明创造[M].北京大学出版社,2020.\
     [2] 王焕林.里耶秦简九九表初探[J].吉首大学学报(社会科学版), 2006(01):51-56.
-        DOI:CNKI:SUN:JSDX.0.2006-01-007.
+        DOI:CNKI:SUN:JSDX.0.2006-01-007.\
     [3]	Granlund T, The GMP development team. GNU MP: The GNU Multiple 
         Precision Arithmetic Library[C]. 5.0.5. 2012.
 */
@@ -141,27 +141,63 @@
 _ALU_BEGIN
 
 /**
- * @brief 
+ * @brief 将 AX 乘以 BX 后叠加到 DX 上 (Multiply-Add with Carry)
  * 
- * @param DX 
- * @param AX 
- * @param BX 
+ * @details 执行操作: DX = DX + (AX * BX)。处理进位标志。
+ * 
+ * @param[out] DX   目标数组视图，存储累加结果
+ * @param[in]  AX   源乘数数组视图
+ * @param[in]  BX   单块乘数
+ * @param[out] CF   进位标志指针，若不为 nullptr 则返回最终进位
  */
 void MULADC(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF = nullptr);
 
 /**
- * @brief 
+ * @brief 将 AX 乘以 BX 后从 DX 减去结果 (Multiply-Subtract with Borrow)
  * 
- * @param DX 
- * @param AX 
- * @param BX 
+ * @details 执行操作: DX = DX - (AX * BX)。处理借位标志。
+ * 
+ * @param[out] DX   目标数组视图，存储相减结果
+ * @param[in]  AX   源乘数数组视图
+ * @param[in]  BX   单块乘数
+ * @param[out] CF   借位标志指针，若不为 nullptr 则返回最终借位
  */
 void MULSBB(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF = nullptr);
 
 _MULTIPLIER_BEGIN
 
 /**
-    @brief 竖式乘法器
+ * @brief 单块乘法器
+ * @details 用于处理一个大整数数组与一个单块整数相乘的场景。
+ */
+__interface SingleBlockMultiplier
+{
+    /**
+     * @brief 乘法器主函数
+     * @param DST 积
+     * @param AX  乘数1
+     * @param BX  乘数2
+     */
+    virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX) = 0;
+};
+
+/**
+ * @brief 乘法器
+ * @details 用于处理两个大整数数组相乘的场景。
+ */
+__interface Multiplier
+{
+    /**
+     * @brief 乘法器主函数
+     * @param DST 积
+     * @param AX  乘数1
+     * @param BX  乘数2
+     */
+    virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX) = 0;
+};
+
+/**
+    @brief 竖式乘法器（第一代乘法器）
     @ingroup Multipliers
 
     @details 上回注释中说到，早在战国时期，我们就已经开始用算筹计算乘法，具体算法是将计算区域
@@ -187,66 +223,136 @@ _MULTIPLIER_BEGIN
     @par 参考文献
     [1]	Pacioli L. Summa de Arithmetica geometria proportioni : et 
         proportionalita[M/OL]. Paganino de Paganini, 1523. 
-        https://books.google.com.hk/books?id=iqgPe49fhrsC.
+        https://books.google.com.hk/books?id=iqgPe49fhrsC.\
     [2] 张建妮.基于FPGA的8位移位相加型硬件乘法器的设计[J].智能计算机与应用, 2014,
         4(4):4.DOI:10.3969/j.issn.2095-2163.2014.04.025.
-
-    @fn void GMP_SingleBlkLongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)
-    @param DST 积
-    @param AX  乘数1
-    @param BX  乘数2
-    
-    @fn GMP_LongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)
-    @param DST 积
-    @param AX  乘数1
-    @param BX  乘数2
 */
-void GMP_SingleBlkLongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockType BX);
-void GMP_LongMultiplier(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX);
+class LongMultiplier : public SingleBlockMultiplier, public Multiplier
+{
+public:
+    /**
+     * @brief 单块乘法
+     */
+    void Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)override;
+
+    /**
+     * @brief 多块乘法
+     */
+    void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)override;
+};
 
 /**
-    @brief 图姆-库克分治乘法器
+    @brief 图姆-库克分治乘法器（第二代乘法器）
     @ingroup Multipliers
 
     @details 1960年，俄罗斯数学家安德雷·尼古拉耶维奇·柯尔莫哥洛夫举行了一次研讨会，他在那场
     会上断言n^2是乘法运算最少需要的步数且不存在步数更少的算法，而一个学生Карацуба, Анатолий 
     Алексеевич提出了不同的意见并于一周后提出了划时代的Karatsuba算法。以计算1234*567为例，
     Karatsuba算法的计算过程如下：
-     1. 将1234和567按块大小Bs = 2位分解成A = (34, 12)和B = (67, 5)   --此处使用LE
+     1. 将1234和567按页大小Ps = 2位分解成A = (34, 12)和B = (67, 5)   --此处使用LE
      2. 将A，B两个数组下标相同的元素相乘，得O = 34 * 67 = 2278, T = 12 * 5 = 60
      3. 将第2步得到的结果O和T相加，得S = 2278 + 60 = 2338
      4. 将A，B两个数组的每一项加起来，然后得到的结果相乘相乘，得P = (34 + 12) * (67 + 5) = 46 * 72 = 3312
      5. 将第3, 4步得到的结果S和P相减，得D = 3312 - 2338 = 974
-     6. 将第2步得到的结果O，T和第5步得到的结果D，按公式(T << (2 * Bs)) + (D << Bs) + (O)组合，得到最终结果600000 + 97400 + 2278 = 699678
+     6. 将第2步得到的结果O，T和第5步得到的结果D，按公式(T << (2 * Ps)) + (D << Ps) + (O)组合，得到最终结果600000 + 97400 + 2278 = 699678
+    这一算法的原理就是把大数的乘法解构成小数的乘法，然后再把得到的结果组合起来，因此这是一种典
+    型的分治算法。相比竖式乘法的O(n^2)，Karatsuba的算法时间复杂度只有O(n^lb(3))，这意味着
+    用这一算法计算一个4块的乘法只需要9次乘法就能完成，用竖式乘法需要16次。
 
+    如果将Karatsuba的算法进行推广，单步计算将大数分解成更多的页，这就得到了图姆-库克分治乘法
+    器。当把两个乘数都分解成K个页分开计算时，这一乘法器的时间复杂度为O(n^log_k(2*k-1))，也
+    就是说，理论上分的页数越多，需要的乘法次数越少。但是在实际计算中，更多的页数就意味着非乘法
+    阶段的额外开销会变多，因此把页数控制在一个较为合理的范围以内才是优化性能的正确方式，而这样
+    做单次乘法需要计算的页大小也可以被控制在能接受的范围内。例如原版GMP就针对不同块数的数应用
+    了不同的分页策略，从2页到6页都有。
 
     @par 参考文献
     [1] Karatsuba A , Ofman Y .Multiplication of Many-Digital Numbers by Automatic 
         Computers[J].Dokl. Akad. Nauk SSSR, 1962, 1962, 145(2):293–294.
-        DOI:10.1016/S0022-5320(61)80017-8.
+        DOI:10.1016/S0022-5320(61)80017-8.\
+    [2] Bodrato M .Towards Optimal Toom-Cook Multiplication for Univariate and 
+        Multivariate Polynomials in Characteristic 2 and 0[C]//Arithmetic of Finite 
+        Fields, First International Workshop, WAIFI 2007, Madrid, Spain, June 21-22, 2007, 
+        Proceedings.Springer-Verlag, 2007.DOI:10.1007/978-3-540-73074-3_10.
  */
-__interface ToomCookMultipliers
+class ToomCookMultiplier : public Multiplier
 {
     // TODO...
 };
 
 /**
-    @brief FFT高速乘法器
+    @brief FFT高速乘法器（第三/四代乘法器）
     @ingroup Multipliers
+
+    @details 1971年，德国数学家Arnold Schönhage和沃尔克·施特拉森提出了一种时间复杂度只有
+    O(n * log(n) * log(log(n)))的高速乘法器，这意味着同样是计算10亿(1E9)块乘法时，新的乘
+    法器相比Karatsuba乘法器至少又能少算165兆(1E12)个乘法。
+
+    新的乘法器相比前两代乘法器走出了一条截然不同的路：它首次将一种来自于信号处理技术领域的，被
+    称为“快速傅立叶变换”（FFT）的方法引入了乘法运算领域。原理较为复杂，见<a href=https://en.wikipedia.org/wiki/Sch%C3%B6nhage%E2%80%93Strassen_algorithm>Wikipedia</a>。在这以后
+    乘法器进入了FFT的天下。另外，FFT乘法器的两位作者在他们的文章中还提到，这一乘法器很可能同
+    样不是速度最快的乘法器，原因是它的时间复杂度表达式“看起来不是特别优雅”，对此他们提出了一种
+    猜想——乘法器“最高境界”的时间复杂度可能是O(n * log(n))。
+
+    >It was kind of a general consensus that multiplication is such an important 
+    >basic operation that, just from an aesthetic point of view, such an important 
+    >operation requires a nice complexity bound, From general experience the 
+    >mathematics of basic things at the end always turns out to be elegant.\
+    >————Martin Fürer
+
+    Arnold Schönhage和沃尔克·施特拉森的纪录一直保持了36年，直到2007年，Martin Fürer基于
+    FFT设计了一种时间复杂度只有\f$O(n\log n\cdot {2}^{\Theta (\log ^{*}(n))})\f$的乘
+    法器，比前者更加接近理想状态。这一发现如同开启了“新世界的大门”（第四代乘法器），后续数学界
+    不断有新的，更加接近理想状态的算法诞生，但从未有一个真正到达这个“最高境界”。直到2019年，
+    一种基于中国剩余定理的同构乘法器最终拿下了这一王座。
+
+    中国剩余定理最早见于东汉的《孙子算经》，其原题为：
+
+    > 今有物不知其数，三三数之剩二，五五数之剩三，七七数之剩二。问物几何？
+
+    最初对这一问题作出完整解答的是宋朝数学家秦九韶，其解答过程记载于他的著作《数书九章》中。明
+    朝数学家程大位在他所著的《算法统宗》中也给出了简单的解法：
+
+    >三人同行七十稀，五树梅花廿一枝；
+    >七子团圆正半月，除百零五便得知。
+
+    更多信息详见<a href=https://en.wikipedia.org/wiki/Chinese_remainder_theorem>Wikipedia</a>
+
+    根据Arnold Schönhage和沃尔克·施特拉森的解法和FFT的硬性要求，尽管过程中大数的乘法被转化
+    成了模B^k - 1下的循环卷积，此时FFT的长度就是k，但为了支持n位乘法，k只能取到sqrt(n)，这
+    样反而会拖慢求解速度。然而根据中国剩余定理，设\f$n_1,\dots,n_d\f$为两两互质的整数，有以
+    下同构：
+    \f[
+    R[X_1,\dots,X_d] / (X_1^k - 1, \dots, X_d^k - 1) \cong R[X]/(X^n - 1)
+    \f]
+    这意味着，一维长度为n的循环卷积，可等价地看作d维大小为\f$n_1,\dots,n_d\f$的多维循环卷
+    积。那么就可以在FFT乘法器的基础上，用中国剩余定理将大规模一维FFT同构为小规模高维FFT，算
+    完后再把结果拼接回来，此时时间复杂度就能降到O(n * log(n))。
+
+    丹霞：尽管最后中国剩余定理同构乘法器的时间复杂度被极限压缩到了O(n * log(n))，在大整数乘
+    法的理论优化道路上画上了一个句号，但是它对应的算法仍然还在理论阶段，还没有真正被实现。而且，
+    它的设计本身只是为了证明大数乘法器的时间复杂度能够摸到它的理论极限，实际运行起来究竟能有多
+    快仍是个未知数。相比FFT乘法器，中国剩余定理同构乘法器的优势仅仅在数字大于1000秭(1E27)位？
+    时才会显现（而宇宙的年龄只有140亿年）。因此，对于一般的大数乘法，FFT乘法器的时间复杂度就
+    已经完全足够，这也就解释了为什么我们在常用的大数库如GMP中没有见到这一终级乘法器。不过它的
+    构型让我联想到先前成功破解了RSA的Shor算法，这一算法最擅长的就是分解质因数，如果把它塞入到
+    CRT乘法器的互质维的分解部分，然后利用量子算法的高度并行特性，应该无论多大数的乘法，甚至普
+    通算法要几十年才能完成的超大数乘法，也能实现瞬间完成。
+
+    @par 参考文献
+    [1] Harvey, Hoeven V D .Integer multiplication in time O(n log n)[J].Annals of 
+        Mathematics, 2021, 193(2):563.DOI:10.4007/annals.2021.193.2.4.\
+    [2] EntropyIncreaser. 整数乘法的长征.
+        https://www.cnblogs.com/Elegia/p/18020040/integer-multiplication
  */
-class FFTMultiplier
+class FFTMultiplier : public Multiplier
 {
     // TODO...
 };
 
-class 
-
 _MULTIPLIER_END
 
-using SingleBlkMulFuncType = void(BlockArrayView DST, BlockArraySrcView AX, BlockType BX);
-using MultiplierFuncType = void(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX);
-using SingleBlkMulFuncPtr = SingleBlkMulFuncType*;
-using MultiplierFuncPtr = MultiplierFuncType*;
+
 
 _ALU_END
 
