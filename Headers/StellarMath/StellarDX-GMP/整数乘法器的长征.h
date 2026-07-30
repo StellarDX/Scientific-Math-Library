@@ -178,7 +178,7 @@ __interface SingleBlockMultiplier
      * @param AX  乘数1
      * @param BX  乘数2
      */
-    virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX) = 0;
+    virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)const = 0;
 };
 
 /**
@@ -193,7 +193,7 @@ __interface Multiplier
      * @param AX  乘数1
      * @param BX  乘数2
      */
-    virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX) = 0;
+    virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)const = 0;
 };
 
 /**
@@ -233,12 +233,12 @@ public:
     /**
      * @brief 单块乘法
      */
-    void Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)override;
+    void Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)const override;
 
     /**
      * @brief 多块乘法
      */
-    void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)override;
+    void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)const override;
 };
 
 /**
@@ -330,14 +330,14 @@ class ToomCookMultiplier : public Multiplier
     完后再把结果拼接回来，此时时间复杂度就能降到O(n * log(n))。
 
     丹霞：尽管最后中国剩余定理同构乘法器的时间复杂度被极限压缩到了O(n * log(n))，在大整数乘
-    法的理论优化道路上画上了一个句号，但是它对应的算法仍然还在理论阶段，还没有真正被实现。而且，
-    它的设计本身只是为了证明大数乘法器的时间复杂度能够摸到它的理论极限，实际运行起来究竟能有多
-    快仍是个未知数。相比FFT乘法器，中国剩余定理同构乘法器的优势仅仅在数字大于1000秭(1E27)位？
-    时才会显现（而宇宙的年龄只有140亿年）。因此，对于一般的大数乘法，FFT乘法器的时间复杂度就
-    已经完全足够，这也就解释了为什么我们在常用的大数库如GMP中没有见到这一终级乘法器。不过它的
-    构型让我联想到先前成功破解了RSA的Shor算法，这一算法最擅长的就是分解质因数，如果把它塞入到
-    CRT乘法器的互质维的分解部分，然后利用量子算法的高度并行特性，应该无论多大数的乘法，甚至普
-    通算法要几十年才能完成的超大数乘法，也能实现瞬间完成。
+    法的理论优化道路上画上了一个圆满的句号，但是它对应的算法仍然还在理论阶段，还没有真正被实现。
+    而且，它的设计本身只是为了证明大数乘法器的时间复杂度能够摸到它的理论极限，实际运行起来究竟
+    能有多快仍是个未知数。相比FFT乘法器，中国剩余定理同构乘法器的优势仅仅在数字大于1000秭
+    (1E27)位？时才会显现（而宇宙的年龄只有140亿年）。因此，对于一般的大数乘法，FFT乘法器的时
+    间复杂度就已经完全足够，这也就解释了为什么我们在常用的大数库如GMP中没有见到这一终级乘法器。
+    不过它的构型让我联想到先前成功破解了RSA的Shor算法，这一算法最擅长的就是分解质因数，如果把
+    它塞入到CRT乘法器的互质维的分解部分，然后利用量子算法的高度并行特性，应该无论多大数的乘法，
+    甚至普通算法要几十年才能完成的超大数乘法，也能实现瞬间完成。
 
     @par 参考文献
     [1] Harvey, Hoeven V D .Integer multiplication in time O(n log n)[J].Annals of 
@@ -352,7 +352,30 @@ class FFTMultiplier : public Multiplier
 
 _MULTIPLIER_END
 
+/**
+ * @brief 单块乘法器
+ * 
+ * @details 根据输入参数执行单块乘法。
+ * 
+ * @param[out] DST   积的结果数组视图。
+ * @param[in]  AX    被乘数数组视图。
+ * @param[in]  BX    乘数（单块）。
+ * @param[in]  MULER 用户指定的乘法器实例。若为 nullptr，则根据输入长度智能选择。
+ */
+void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const Multipliers::SingleBlockMultiplier* MULER = nullptr);
 
+/**
+ * @brief 乘法器
+ * 
+ * @details 根据输入参数执行多块乘法。
+ *          （如在 LongMultiplier, ToomCookMultiplier, FFTMultiplier 之间切换）。
+ * 
+ * @param[out] DST   积的结果数组视图。
+ * @param[in]  AX    被乘数数组视图。
+ * @param[in]  BX    乘数数组视图。
+ * @param[in]  MULER 用户指定的乘法器实例。若为 nullptr，则根据输入长度智能选择。
+ */
+void MUL(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, const Multipliers::Multiplier* MULER = nullptr);
 
 _ALU_END
 

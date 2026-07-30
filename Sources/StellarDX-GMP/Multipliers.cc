@@ -71,7 +71,7 @@ void MULSBB(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF
 
 _MULTIPLIER_BEGIN
 
-void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)
+void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)const
 {
     BlockType C = 0;
     for (size_t i = 0; i < AX.size(); ++i)
@@ -83,7 +83,7 @@ void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)
     DST.at(AX.size()) = C;
 }
 
-void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)
+void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)const
 {
     auto DSLIDE = DST | std::ranges::views::slide(AX.size() + 1);
     auto DI = DSLIDE.begin();
@@ -97,6 +97,18 @@ void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrc
 
 _MULTIPLIER_END
 
+void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const Multipliers::SingleBlockMultiplier* MULER)
+{
+    if (MULER) {MULER->Run(DST, AX, BX);}
+    Multipliers::LongMultiplier Mul;
+    Mul.Run(DST, AX, BX);
+}
 
+void MUL(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, const Multipliers::Multiplier* MULER)
+{
+    if (MULER) {MULER->Run(DST, AX, BX);}
+    Multipliers::LongMultiplier Mul;
+    Mul.Run(DST, AX, BX);
+}
 
 _ALU_END

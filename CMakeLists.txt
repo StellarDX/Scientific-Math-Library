@@ -15,7 +15,7 @@ if (NOT DEFINED SML_IsMaster)
     endif ()
 endif ()
 
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.0)
 
 # 将传入的所有参数连接成一个字符串，随后保存到 ${result_var} 中
 function(MergeString OutputVariable)
@@ -135,8 +135,8 @@ include(CMakePackageConfigHelpers)
 SetCacheVariable(SML_CMakeConfigDirectory ${CMAKE_INSTALL_LIBDIR}/cmake/StellarMath CACHE STRING
     "CMake配置安装目录，可以是 ${CMAKE_INSTALL_PREFIX} 下的一个相对路径或一个绝对路径")
 
-set(VersionConfig ${PROJECT_BINARY_DIR}/StellarMath-config-version.cmake)
-set(ProjectConfig ${PROJECT_BINARY_DIR}/StellarMath-config.cmake)
+set(VersionConfig ${PROJECT_BINARY_DIR}/StellarMathConfig-Version.cmake)
+set(ProjectConfig ${PROJECT_BINARY_DIR}/StellarMathConfig.cmake)
 set(PackageConfig ${PROJECT_BINARY_DIR}/StellarMath.pc)
 set(TargetsExportName SMLTargets)
 
