@@ -1,7 +1,7 @@
 @PACKAGE_INIT@
 
-if (NOT TARGET StellarDX::StellarMath)
+if (NOT TARGET StellarDX::SciMath)
   include(${CMAKE_CURRENT_LIST_DIR}/@TargetsExportName@.cmake)
 endif ()
 
-check_required_components(StellarMath)
+check_required_components(SciMath)

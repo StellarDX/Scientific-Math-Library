@@ -31,7 +31,7 @@
  * If not, see https://www.gnu.org/licenses/.
  */
 
-#include "StellarMath/StellarDX-GMP/IO.h"
+#include "SciMath/StellarDX-GMP/IO.h"
 #include <algorithm>
 
 _ALU_BEGIN

@@ -32,8 +32,7 @@
  */
 
 #include <ranges>
-#include "StellarMath/StellarDX-GMP/SMLDefs.h"
-#include "StellarMath/StellarDX-GMP/整数乘法器的长征.h"
+#include "SciMath/StellarDX-GMP/整数乘法器的长征.h"
 
 _ALU_BEGIN
 

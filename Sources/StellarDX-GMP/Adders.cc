@@ -31,7 +31,7 @@
  * If not, see https://www.gnu.org/licenses/.
  */
 
-#include "StellarMath/StellarDX-GMP/Adders.h"
+#include "SciMath/StellarDX-GMP/Adders.h"
 #if __GNUC__ >= 16
 #include <simd> // SIMD
 #else

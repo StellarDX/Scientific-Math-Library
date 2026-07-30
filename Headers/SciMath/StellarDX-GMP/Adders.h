@@ -38,7 +38,7 @@
 #ifndef __STEL_GMP_ADDERS__
 #define __STEL_GMP_ADDERS__
 
-#include <StellarMath/StellarDX-GMP/SMLDefs.h>
+#include <SciMath/StellarDX-GMP/SMLDefs.h>
 
 #define _ADDER_BEGIN namespace Adders {
 #define _ADDER_END }

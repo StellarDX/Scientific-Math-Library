@@ -99,7 +99,7 @@ foreach(i ${SML_SourceFiles})
     message(STATUS "  ${i}")
 endforeach()
 
-# 强化一下添加目标函数，为后续C++20模块支持预留空间
+# 强化一下添加目标函数，为后续模块支持预留空间
 include(CMakeParseArguments)
 
 function(AddModuleLibrary Name)
@@ -115,29 +115,29 @@ function(AddModuleLibrary Name)
     #endif ()
 endfunction()
 
-AddModuleLibrary(StellarMath Sources/StellarMath.ixx FALLBACK
+AddModuleLibrary(SciMath Sources/SciMath.ixx FALLBACK
     ${SML_SourceFiles} ${SML_HeaderFiles}
     IF BuildAsModule)
-add_library(StellarDX::ISO80000SML ALIAS StellarMath)
+add_library(SciMath::ISO80000SML ALIAS SciMath)
 
 # 添加头文件
 
-target_include_directories(StellarMath PUBLIC
+target_include_directories(SciMath PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Headers>
   $<INSTALL_INTERFACE:${SML_HeaderInstallDirectory}>)
 
-# set_target_properties(StellarMath PROPERTIES
+# set_target_properties(SciMath PROPERTIES
 #   PUBLIC_HEADER "${SML_HeaderFiles}")
 
 # 安装目标
 include(CMakePackageConfigHelpers)
 
-SetCacheVariable(SML_CMakeConfigDirectory ${CMAKE_INSTALL_LIBDIR}/cmake/StellarMath CACHE STRING
+SetCacheVariable(SML_CMakeConfigDirectory ${CMAKE_INSTALL_LIBDIR}/cmake/SciMath CACHE STRING
     "CMake配置安装目录，可以是 ${CMAKE_INSTALL_PREFIX} 下的一个相对路径或一个绝对路径")
 
-set(VersionConfig ${PROJECT_BINARY_DIR}/StellarMathConfig-Version.cmake)
-set(ProjectConfig ${PROJECT_BINARY_DIR}/StellarMathConfig.cmake)
-set(PackageConfig ${PROJECT_BINARY_DIR}/StellarMath.pc)
+set(VersionConfig ${PROJECT_BINARY_DIR}/SciMathConfig-Version.cmake)
+set(ProjectConfig ${PROJECT_BINARY_DIR}/SciMathConfig.cmake)
+set(PackageConfig ${PROJECT_BINARY_DIR}/SciMath.pc)
 set(TargetsExportName SMLTargets)
 
 SetCacheVariable(SML_LibraryInstallDirectory ${CMAKE_INSTALL_LIBDIR} CACHE STRING
@@ -170,27 +170,27 @@ JoinPathsR(PCLibrariesDir "\${exec_prefix}" "${SML_LibraryInstallDirectory}")
 JoinPathsR(PCHeadersDir "\${prefix}" "${SML_HeaderInstallDirectory}")
 
 configure_file(
-    "${PROJECT_SOURCE_DIR}/CMakeRes/StellarMath.pc.template"
+    "${PROJECT_SOURCE_DIR}/CMakeRes/SciMath.pc.template"
     "${PackageConfig}"
     @ONLY)
 
 configure_package_config_file(
-    ${PROJECT_SOURCE_DIR}/CMakeRes/StellarMath-config.cmake.template
+    ${PROJECT_SOURCE_DIR}/CMakeRes/SciMath-config.cmake.template
     ${ProjectConfig}
     INSTALL_DESTINATION ${SML_CMakeConfigDirectory})
 
-set(InstallTargets StellarMath)
+set(InstallTargets SciMath)
 
 install(TARGETS ${InstallTargets} EXPORT ${TargetsExportName}
     LIBRARY DESTINATION ${SML_LibraryInstallDirectory}
     ARCHIVE DESTINATION ${SML_LibraryInstallDirectory}
-    #PUBLIC_HEADER DESTINATION "${SML_HeaderInstallDirectory}/StellarMath"
+    #PUBLIC_HEADER DESTINATION "${SML_HeaderInstallDirectory}/SciMath"
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-install(DIRECTORY Headers/StellarMath
+install(DIRECTORY Headers/SciMath
     DESTINATION Headers) # 这里因为头文件有子目录，所以另外安装
 
-export(TARGETS ${InstallTargets} NAMESPACE StellarDX::
+export(TARGETS ${InstallTargets} NAMESPACE SciMath::
     FILE ${PROJECT_BINARY_DIR}/${TargetsExportName}.cmake)
 
 install(
@@ -198,6 +198,6 @@ install(
     DESTINATION ${SML_CMakeConfigDirectory})
 
 install(EXPORT ${TargetsExportName} DESTINATION ${SML_CMakeConfigDirectory}
-          NAMESPACE StellarDX::)
+          NAMESPACE SciMath::)
 
 install(FILES "${PackageConfig}" DESTINATION "${SML_PackageConfigDirectory}")

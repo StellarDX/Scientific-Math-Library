@@ -31,7 +31,7 @@
  * If not, see https://www.gnu.org/licenses/.
  */
 
-#include "StellarMath/StellarDX-GMP/Subtractors.h"
+#include "SciMath/StellarDX-GMP/Subtractors.h"
 
 _ALU_BEGIN
 

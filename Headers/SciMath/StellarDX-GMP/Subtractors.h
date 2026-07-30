@@ -38,7 +38,7 @@
 #ifndef __STEL_GMP_SUBTRACTORS__
 #define __STEL_GMP_SUBTRACTORS__
 
-#include <StellarMath/StellarDX-GMP/SMLDefs.h>
+#include <SciMath/StellarDX-GMP/SMLDefs.h>
 
 #define _SUBTRACTOR_BEGIN namespace Subtractors {
 #define _SUBTRACTOR_END }

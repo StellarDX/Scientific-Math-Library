@@ -39,7 +39,7 @@
 #define __STEL_GMP_IO__
 
 #include <compare>
-#include <StellarMath/StellarDX-GMP/SMLDefs.h>
+#include <SciMath/StellarDX-GMP/SMLDefs.h>
 
 _ALU_BEGIN
 

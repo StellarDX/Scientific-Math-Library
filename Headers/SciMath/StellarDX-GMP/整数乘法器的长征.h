@@ -132,7 +132,7 @@
 #ifndef __Multiplier__
 #define __Multiplier__
 
-#include <StellarMath/StellarDX-GMP/SMLDefs.h>
+#include <SciMath/StellarDX-GMP/SMLDefs.h>
 
 #define _MULTIPLIER_BEGIN namespace Multipliers {
 #define _MULTIPLIER_END }
