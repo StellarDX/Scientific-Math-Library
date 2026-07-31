@@ -43,6 +43,10 @@
 #include <stdexcept>
 #include <concepts>
 
+#if defined(__GNUG__) && !defined(__declspec)
+#define __declspec(attrib) __attribute__((attrib))
+#endif
+
 #if !defined(_MSC_VER) && !defined(__interface)
 #define __interface struct
 #endif
