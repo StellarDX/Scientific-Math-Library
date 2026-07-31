@@ -7,9 +7,60 @@
     丹霞：除法运算一直以来几乎都是以竖式除法为主，虽然现在也有分治除法器和牛顿迭代除法器，GMP
     内置的也就只有这几种除法器了。但是这些优化方案实际上优化效果不是特别明显，因为除法本质上是
     一种“下一状态需要上一状态推导”的过程，无法真正实现完全的并行化，也就意味着它很难吃满分治带
-    来的优势，甚至就连硬件除法器也难以通过堆料的方式获得更好的提升效果（除非增加U的面积）。就
-    现在的那些U而言，执行一次除法器需要十几二十个时钟周期，相比乘法器只需要不到5个时钟周期就能
-    执行一次，妥妥的“性能黑洞”。因此，在设计大数除法算法时，一般会尽量避免使用硬件除法器。
+    来的优势，甚至就连硬件除法器也难以通过堆料的方式获得更好的提升效果（除非增加U的面积）。
+    例如GMP在它刚诞生的时期，爆出了如下的大料：
+    >                    64-bit divisor       32-bit divisor\
+    >                      cycles/limb          cycles/limb\
+    >                       (approx)             (approx)\
+    >                  integer  fraction    integer  fraction\
+    >  Ultrasparc 2i:    160      160          122      96\
+    >
+    >  32-bit divisors are treated in special case code.  This requires 4 mulx
+    >  per limb instead of 8 in the general case.
+    >  For big endian systems we need HALF_ENDIAN_ADJ included in the src[i]
+    >  addressing, to get the two halves of each limb read in the correct order.
+    >  This is kept in an adj variable.  Doing that measures about 4 c/l faster
+    >  than just writing HALF_ENDIAN_ADJ(i) in the integer loop.  The latter
+    >  shouldn't be 6 cycles worth of work, but perhaps it doesn't schedule well
+    >  (on gcc 3.2.1 at least).  The fraction loop doesn't seem affected, but we
+    >  still use a variable since that ought to work out best.  
+    文中的Ultrasparc 2i就是是当年Sun的那只“黑鸟”，定位是一款中低端服务器U。这个U在它主导的
+    年代混的堪称风生水起——不像高端型号那样追求极限性能，在性能、成本和集成度之间找到了绝佳平衡，
+    然后又在互联网泡沫的巅峰期乘上了东风——衍生产品Ultra 5和Ultra 10成了当时的“性价比之王”。
+    然而阳极阴生，进入新世纪后IBM发布的Power系列以及英特尔发布的奔2和奔3开始从高端和低端两个
+    方向夹击黑鸟的市场空间，又加上臭名昭著的“Sabre Bug”，搞得它包括整个系列从此一蹶不振，终
+    成落日残烟。在GMP的爆料中也提到，“黑鸟”的除法器执行一次需要160个时钟周期，堪称“性能黑洞”。
+    究其原因是当时的除法器还没实现完全的流水线化，计算方式也还是传统的竖式除法器，需要逐位（或
+    每周期2-4位）迭代计算商，然后对齐，规格化，写回，一整套流程执行下来需要的时间非常长。如果
+    后续有依赖本次除法结果的计算，这些计算也会被迫延迟执行，搞得整组的进度都被拖慢。而且不仅仅
+    这一个U这样，当时几乎所有RISC的U都一个鸟样。Google的首席工程师Eric Dumazet在2006年在
+    一封邮件里头提到，某款sparcv9的U执行一次除法需要消耗64个时钟周期。紧接着Linux开发者戴维·
+    米勒在回信中爆出了一个更大的瓜：
+    >For UltraSPARC I and II (which is what this 200mhz guy probably is),
+    >it's 4 cycle latency for a multiply (32-bit or 64-bit) and 68 cycles
+    >for a 64-bit divide (32-bit divide is 37 cycles).
+    >
+    >UltraSPARC-III and IV are worse, 6 cycles for multiply and 40/71
+    >cycles (32/64-bit) for integer divides.
+    >
+    >Niagara is even worse :-)  11 cycle integer multiply and a 72 cycle
+    >integer divide (regardless of 32-bit or 64-bit).
+    >
+    >(more details in gcc/config/sparc/sparc.c:{ultrasparc,ultrasparc3,niagara}_cost).
+    >
+    >So this change has tons of merit for sparc64 chips at least :-)
+    >
+    >Also, the multiply can parallelize with other operations but it
+    >seems that integer divide stalls the pipe for most of the duration
+    >of the calculation.  So this makes the divide even worse.
+    这也就意味着，如果用当时的U，执行一次除法产生的开销至少能够计算8次乘法。而且这还没完，GMP
+    文档中还有一个值得注意的地方，就是SPARC9的U寻址方式是大端序，而GMP的存储方式是小端序，这
+    样一来又会增加一大笔寻址产生的开销而且可能还会干扰指令调度，这种情况在当时GCC3那一拖四的
+    调度器里头尤为常见（即如果不把一些值缓存到变量会导致GCC3的调度器生成一堆没什么卵用的指令）。
+    这也就是为什么GMP诞生时仅仅为了优化一个小小的除法器写了一吨代码。当然到了现在随着编译器不
+    断升级以及硬件层SRT器和OoO（乱序执行）的引入，硬件除法器也得到了完整的流水线化并降低了延
+    迟，实测std::div的速度已经能追平当年GMP的优化了。因此本文的除法器使用std::div，同时保
+    留GMP的优化实现。
  */
 
 #pragma once
