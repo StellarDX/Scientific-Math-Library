@@ -60,7 +60,14 @@
     结果就是本来就龟速的除法运算搞得更是“一拖四”。这也就是为什么GMP诞生时仅仅为了优化一个小小
     的除法器写了一吨代码。当然到了现在随着编译器不断升级以及硬件层SRT器和OoO（乱序执行）的引
     入，硬件除法器也得到了完整的流水线化并降低了延迟，实测std::div的速度已经能追平当年GMP的优
-    化了。因此本文的除法器使用std::div，同时保留GMP的优化实现。
+    化了。另外IEEE在一篇文章中提到，目前的先进除法器已经有能力在2个时钟周期内完成一次运算。因
+    此本文的除法器使用std::div，同时保留GMP的优化实现。
+
+    @par 参考文献
+    [1]	Angioli M, Barbirotta M, Cheikh A, 等. Design, Implementation and 
+        Evaluation of a New Variable Latency Integer Division Scheme[J/OL]. IEEE 
+        Transactions on Computers, 2024, 73(7): 1767-1779. 
+        DOI:10.1109/TC.2024.3386060.
  */
 
 #pragma once
@@ -130,9 +137,9 @@ public:
     using TplBlkType = std::tuple<BlockType, BlockType, BlockType>;
 
     /// @brief 单块除法器执行除数最高位为1的除法时，被除数块数高于此值切换为倒数除法器
-    size_t SingleBlockDividerNormalizedThreshold = ~0;
+    size_t SingleBlockDividerNormalizedThreshold = -1;
     /// @brief 单块除法器执行除数最高位不为1的除法时，被除数块数高于此值切换为倒数除法器
-    size_t SingleBlockDividerUnnormalizedThreshold = ~0;
+    size_t SingleBlockDividerUnnormalizedThreshold = -1;
 
 public:
     /**
@@ -180,14 +187,12 @@ public:
     /**
      * @brief 原子操作：双块倒数除法器
      * @note 此除法器仅在除数最高位为1且被除数最高块的值小于除数时生效
-     * @bug 已知在被除数最高块的最高位也是1时大概率得到错误的结果
      * @deprecated 随着现在的U和标准库的优化，百万次计时实测std::div的延迟已经追平这个函数了，后续使用std::div即可
      * @param AX 被除数
      * @param BX 除数
      * @param BR 除数的倒数
      * @return constexpr DblBlkType {商, 余数}
      */
-    [[deprecated("随着现在的U和标准库的优化，百万次计时实测std::div的延迟已经追平这个函数了，后续使用std::div即可")]]
     inline constexpr static DblBlkType __Atomic_DblDivSngRecip
         (DblBlkType AX, BlockType BX, BlockType BR)
     {
@@ -296,13 +301,13 @@ public:
      */
     inline constexpr static BlockType MakeReciprocal1(BlockType AX)
     {
-        return (~(ExtBlockType(AX) << BSIZE)) / AX;
+        return BlockType(~(ExtBlockType(AX) << BSIZE) / AX);
     }
 
     static void SingleBlockDiv(
         BlockArrayView RAX, BlockArrayView RBX, BlockType* RDX,
         BlockArraySrcView AX, BlockType BX, 
-        size_t TN = ~0, size_t TU = ~0);
+        size_t TN = -1, size_t TU = -1);
 
     void Run(BlockArrayView RAX, BlockArrayView RBX, BlockArrayView RDX)const override;
 };
