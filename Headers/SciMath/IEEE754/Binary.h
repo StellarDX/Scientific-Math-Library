@@ -13,20 +13,13 @@
 #ifndef __Floating_point_arithmetic__
 #define __Floating_point_arithmetic__
 
-#include <StellarMath/Base/Standards.h>
+#include "SciMath/StellarDX-GMP/SMLDefs.h"
 #include <cstdint>
 #include <cstddef>
 
 _754_BEGIN
 
-template<uint64_t ExponentSize, uint64_t MantissaSize>
-struct StorageTypeGenerator
-{
-    struct Type
-    {
 
-    };
-};
 
 _754_END
 
