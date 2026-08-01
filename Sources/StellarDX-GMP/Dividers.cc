@@ -37,6 +37,7 @@
 #include "SciMath/StellarDX-GMP/整数乘法器的长征.h"
 #include <bit>
 #include <iterator>
+#include <ranges>
 
 _ALU_BEGIN
 _DIVIDER_BEGIN
@@ -61,7 +62,7 @@ LongReciprocalDivider::LongReciprocalDivider(BlockArraySrcView AX, BlockArraySrc
     Init();
 }
 
-void LongReciprocalDivider::__Single_Block_Long_Div_Normalized_Stage2(
+void LongReciprocalDivider::__Single_Block_Long_Div_Normalized_Impl(
     BlockArraySrcView::reverse_iterator NI, BlockArraySrcView::reverse_iterator NE, 
     BlockType D, 
     BlockArrayView::reverse_iterator QI, 
@@ -70,21 +71,17 @@ void LongReciprocalDivider::__Single_Block_Long_Div_Normalized_Stage2(
 {
     for (; NI != NE; ++NI)
     {
-        auto [Q1, R1] = __Atomic_DblDivSng({*NI, RI}, D);
-        *QI = Q1;
-        RI = R1;
+        std::tie(*QI, RI) = __Atomic_DblDivSng({*NI, RI}, D);
         ++QI;
     }
     for (; QEI != QEE; ++QEI)
     {
-        auto [Q1, R1] = __Atomic_DblDivSng({0, RI}, D);
-        *QEI = Q1;
-        RI = R1;
+        std::tie(*QEI, RI) = __Atomic_DblDivSng({0, RI}, D);
     }
     if (R) {*R = RI;}
 }
 
-void LongReciprocalDivider::__Single_Block_Recip_Div_Normalized_Stage2(
+void LongReciprocalDivider::__Single_Block_Recip_Div_Normalized_Impl(
     BlockArraySrcView::reverse_iterator NI, BlockArraySrcView::reverse_iterator NE, 
     BlockType D,
     BlockArrayView::reverse_iterator QI, 
@@ -94,21 +91,17 @@ void LongReciprocalDivider::__Single_Block_Recip_Div_Normalized_Stage2(
     BlockType DI = MakeReciprocal1(D);
     for (; NI != NE; ++NI)
     {
-        auto [Q1, R1] = __Atomic_DblDivSngRecip({*NI, RI}, D, DI);
-        *QI = Q1;
-        RI = R1;
+        std::tie(*QI, RI) = __Atomic_DblDivSngRecip({*NI, RI}, D, DI);
         ++QI;
     }
     for (; QEI != QEE; ++QEI)
     {
-        auto [Q1, R1] = __Atomic_DblDivSngRecip({0, RI}, D, DI);
-        *QEI = Q1;
-        RI = R1;
+        std::tie(*QEI, RI) = __Atomic_DblDivSngRecip({0, RI}, D, DI);
     }
     if (R) {*R = RI;}
 }
 
-void LongReciprocalDivider::__Single_Block_Long_Div_Unnormalized_Stage2(
+void LongReciprocalDivider::__Single_Block_Long_Div_Unnormalized_Impl(
     BlockArraySrcView::reverse_iterator NI, BlockArraySrcView::reverse_iterator NE, 
     BlockType D, 
     BlockArrayView::reverse_iterator QI, 
@@ -128,29 +121,22 @@ void LongReciprocalDivider::__Single_Block_Long_Div_Unnormalized_Stage2(
         {
             BlockType NL = *NI;
             BlockType NSFT = (NH << SFT) | (NL >> (BSIZE - SFT));
-            auto [Q1, R1] = __Atomic_DblDivSng({NSFT, RI}, D);
-            *QI = Q1;
-            RI = R1;
+            std::tie(*QI, RI) = __Atomic_DblDivSng({NSFT, RI}, D);
             ++QI;
             NH = NL;
         }
-        auto [Q1, R1] = __Atomic_DblDivSng({NH << SFT, RI}, D);
-        *QI = Q1;
-        RI = R1;
-        ++QI;
+        std::tie(*QI, RI) = __Atomic_DblDivSng({NH << SFT, RI}, D);
     }
 
     for (; QEI != QEE; ++QEI)
     {
-        auto [Q1, R1] = __Atomic_DblDivSng({0, RI}, D);
-        *QEI = Q1;
-        RI = R1;
+        std::tie(*QEI, RI) = __Atomic_DblDivSng({0, RI}, D);
     }
 
     if (R) {*R = RI >> SFT;}
 }
 
-void LongReciprocalDivider::__Single_Block_Recip_Div_Unnormalized_Stage2(
+void LongReciprocalDivider::__Single_Block_Recip_Div_Unnormalized_Impl(
     BlockArraySrcView::reverse_iterator NI, BlockArraySrcView::reverse_iterator NE, 
     BlockType D, 
     BlockArrayView::reverse_iterator QI, 
@@ -171,23 +157,16 @@ void LongReciprocalDivider::__Single_Block_Recip_Div_Unnormalized_Stage2(
         {
             BlockType NL = *NI;
             BlockType NSFT = (NH << SFT) | (NL >> (BSIZE - SFT));
-            auto [Q1, R1] = __Atomic_DblDivSngRecip({NSFT, RI}, D, DI);
-            *QI = Q1;
-            RI = R1;
+            std::tie(*QI, RI) = __Atomic_DblDivSngRecip({NSFT, RI}, D, DI);
             ++QI;
             NH = NL;
         }
-        auto [Q1, R1] = __Atomic_DblDivSngRecip({NH << SFT, RI}, D, DI);
-        *QI = Q1;
-        RI = R1;
-        ++QI;
+        std::tie(*QI, RI) = __Atomic_DblDivSngRecip({NH << SFT, RI}, D, DI);
     }
 
     for (; QEI != QEE; ++QEI)
     {
-        auto [Q1, R1] = __Atomic_DblDivSngRecip({0, RI}, D, DI);
-        *QEI = Q1;
-        RI = R1;
+        std::tie(*QEI, RI) = __Atomic_DblDivSngRecip({0, RI}, D, DI);
     }
 
     if (R) {*R = RI >> SFT;}
@@ -222,12 +201,12 @@ void LongReciprocalDivider::SingleBlockDiv(
 
         if (N < TN)
         {
-            __Single_Block_Long_Div_Normalized_Stage2(
+            __Single_Block_Long_Div_Normalized_Impl(
                 AX.rbegin() + 1, AX.rend(), BX, QI, RBX.rbegin(), RBX.rend(), RDX, R);
         }
         else
         {
-            __Single_Block_Recip_Div_Normalized_Stage2(
+            __Single_Block_Recip_Div_Normalized_Impl(
                 AX.rbegin() + 1, AX.rend(), BX, QI, RBX.rbegin(), RBX.rend(), RDX, R);
         }
     }
@@ -255,15 +234,52 @@ void LongReciprocalDivider::SingleBlockDiv(
 
         if (N < TU)
         {
-            __Single_Block_Long_Div_Unnormalized_Stage2(
+            __Single_Block_Long_Div_Unnormalized_Impl(
                 NI, AX.rend(), BX, QI, RBX.rbegin(), RBX.rend(), RDX, R);
         }
         else
         {
-            __Single_Block_Recip_Div_Unnormalized_Stage2(
+            __Single_Block_Recip_Div_Unnormalized_Impl(
                 NI, AX.rend(), BX, QI, RBX.rbegin(), RBX.rend(), RDX, R);
         }
     }
+}
+
+void LongReciprocalDivider::DoubleBlockDiv(
+    BlockArrayView RAX, BlockArrayView RBX, DblBlkType* RDX, 
+    BlockArraySrcView AX, DblBlkType BX)
+{
+    auto NI = AX.rbegin();
+    BlockType RL = *(NI + 1), RH = *(NI);
+    BlockType R = __Atomic_DblBlkToExtType({RL, RH});
+    ExtBlockType D = __Atomic_DblBlkToExtType(BX);
+    auto QI = std::reverse_iterator{RAX.begin() + AX.size() - 1};
+    
+    if (R >= D) // 商的最高块的值只可能是0或1,具体取决于被除数最高2块和除数的大小
+    {
+        std::tie(RL, RH) = __Atomic_ExtTypeToDblBlk(R - D);
+        *QI = 1;
+    }
+    else {*QI = 0;}
+    ++QI;
+
+    BlockType DI = MakeReciprocal2(BX);
+
+    for (NI = AX.rbegin() + 2; NI != AX.rend(); ++NI)
+    {
+        std::tie(*QI, RL, RH) = __Atomic_TplDivDblRecip({*NI, RL, RH}, BX, DI);
+        ++QI;
+    }
+
+    if (!RBX.empty())
+    {
+        for (auto QEI = RBX.rbegin(); QEI != RBX.rend(); ++QEI)
+        {
+            std::tie(*QEI, RL, RH) = __Atomic_TplDivDblRecip({0, RL, RH}, BX, DI);
+        }
+    }
+
+    if (RDX) {*RDX = {RL, RH};}
 }
 
 void LongReciprocalDivider::Init()

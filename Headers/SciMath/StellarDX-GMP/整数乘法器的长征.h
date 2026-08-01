@@ -150,7 +150,7 @@ _ALU_BEGIN
  * @param[in]  BX   单块乘数
  * @param[out] CF   进位标志指针，若不为 nullptr 则返回最终进位
  */
-void MULADC(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF = nullptr);
+void MADD(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF = nullptr);
 
 /**
  * @brief 将 AX 乘以 BX 后从 DX 减去结果 (Multiply-Subtract with Borrow)
@@ -162,7 +162,7 @@ void MULADC(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF
  * @param[in]  BX   单块乘数
  * @param[out] CF   借位标志指针，若不为 nullptr 则返回最终借位
  */
-void MULSBB(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF = nullptr);
+void MSUB(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF = nullptr);
 
 _MULTIPLIER_BEGIN
 

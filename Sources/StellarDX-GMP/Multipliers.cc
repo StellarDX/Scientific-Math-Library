@@ -36,7 +36,7 @@
 
 _ALU_BEGIN
 
-void MULADC(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF)
+void MADD(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF)
 {
     BlockType C = 0;
     for (size_t i = 0; i < AX.size(); ++i)
@@ -52,7 +52,7 @@ void MULADC(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF
     if (CF) {*CF = C;}
 }
 
-void MULSBB(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF)
+void MSUB(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF)
 {
     BlockType C = 0;
     for (size_t i = 0; i < AX.size(); ++i)
@@ -90,7 +90,7 @@ void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrc
     for (size_t i = 1; i < BX.size(); ++i)
     {
         ++DI;
-        MULADC(*DI, AX, BX.at(i), &((*DI).back()));
+        MADD(*DI, AX, BX.at(i), &((*DI).back()));
     }
 }
 
