@@ -141,7 +141,8 @@
 _ALU_BEGIN
 
 /**
- * @brief 将 AX 乘以 BX 后叠加到 DX 上 (Multiply-Add with Carry)
+ * @brief 将AX乘以BX后叠加到DX上 (Multiply-Add with Carry)
+ * @ingroup Multipliers
  * 
  * @details 执行操作: DX = DX + (AX * BX)。处理进位标志。
  * 
@@ -153,7 +154,8 @@ _ALU_BEGIN
 void MADD(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF = nullptr);
 
 /**
- * @brief 将 AX 乘以 BX 后从 DX 减去结果 (Multiply-Subtract with Borrow)
+ * @brief 将AX乘以BX后从DX减去结果 (Multiply-Subtract with Borrow)
+ * @ingroup Multipliers
  * 
  * @details 执行操作: DX = DX - (AX * BX)。处理借位标志。
  * 
@@ -163,8 +165,6 @@ void MADD(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF =
  * @param[out] CF   借位标志指针，若不为 nullptr 则返回最终借位
  */
 void MSUB(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF = nullptr);
-
-_MULTIPLIER_BEGIN
 
 /**
  * @brief 单块乘法器
@@ -195,6 +195,8 @@ __interface Multiplier
      */
     virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)const = 0;
 };
+
+_MULTIPLIER_BEGIN
 
 /**
     @brief 竖式乘法器（第一代乘法器）
@@ -354,6 +356,7 @@ _MULTIPLIER_END
 
 /**
  * @brief 单块乘法器
+ * @ingroup Multipliers
  * 
  * @details 根据输入参数执行单块乘法。
  * 
@@ -362,10 +365,11 @@ _MULTIPLIER_END
  * @param[in]  BX    乘数（单块）。
  * @param[in]  MULER 用户指定的乘法器实例。若为 nullptr，则根据输入长度智能选择。
  */
-void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const Multipliers::SingleBlockMultiplier* MULER = nullptr);
+void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const SingleBlockMultiplier* MULER = nullptr);
 
 /**
  * @brief 乘法器
+ * @ingroup Multipliers
  * 
  * @details 根据输入参数执行多块乘法。
  *          （如在 LongMultiplier, ToomCookMultiplier, FFTMultiplier 之间切换）。
@@ -375,7 +379,7 @@ void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const Multipli
  * @param[in]  BX    乘数数组视图。
  * @param[in]  MULER 用户指定的乘法器实例。若为 nullptr，则根据输入长度智能选择。
  */
-void MUL(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, const Multipliers::Multiplier* MULER = nullptr);
+void MUL(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, const Multiplier* MULER = nullptr);
 
 _ALU_END
 

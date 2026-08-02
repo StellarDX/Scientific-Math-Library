@@ -57,7 +57,7 @@ void INC(BlockArrayView AX, BlockType BX, BlockType* CF)
 
 _ADDER_BEGIN
 
-void GMP_SerialAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF)
+void SerialAdder::Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF)const
 {
     const auto& [SX, LX] = AX.size() > BX.size() ? std::tie(BX, AX) : std::tie(AX, BX);
     for (size_t i = 0; i < SX.size(); ++i)
@@ -74,33 +74,19 @@ void GMP_SerialAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView
     if (CF) {*CF = CI;}
 }
 
-void CarryLookaheadParallelAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF)
-{
-    Panic<std::runtime_error>("CarryLookaheadParallelAdder：已废弃特性");
-}
-
-void SIMD_ParallelAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF)
-{
-    Panic<std::runtime_error>("SIMD_ParallelAdder：待实现");
-}
-
-void AVX512_ParallelAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF)
-{
-    Panic<std::runtime_error>("AVX512_ParallelAdder：待实现");
-}
-
 _ADDER_END
 
-void ADD(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF, AdderFunc ADDER)
+void ADD(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF, const Adder* ADDER)
 {
     if (ADDER) // 指定自定义加法器
     {
-        ADDER(DST, AX, BX, CI, CF);
+        ADDER->Run(DST, AX, BX, CI, CF);
         return;
     }
 
     // 未指定自定义加法器时智能选择
-    _ADDER GMP_SerialAdder(DST, AX, BX, CI, CF);
+    _ADDER SerialAdder AdderFunc;
+    AdderFunc.Run(DST, AX, BX, CI, CF);
 }
 
 _ALU_END

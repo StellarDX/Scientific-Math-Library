@@ -33,14 +33,14 @@
 
 #include "SciMath/StellarDX-GMP/Dividers.h"
 #include "SciMath/StellarDX-GMP/IO.h"
-#include "SciMath/StellarDX-GMP/SMLDefs.h"
 #include "SciMath/StellarDX-GMP/整数乘法器的长征.h"
+#include "SciMath/StellarDX-GMP/Logics.h"
+
 #include <bit>
 #include <iterator>
 #include <ranges>
 
 _ALU_BEGIN
-_DIVIDER_BEGIN
 
 Divider::Divider(BlockArraySrcView AX, BlockArraySrcView BX) : 
     NumeratorOriginalView(AX), DenominatorOriginalView(BX)
@@ -51,11 +51,12 @@ Divider::Divider(BlockArraySrcView AX, BlockArraySrcView BX) :
     }
 }
 
+_DIVIDER_BEGIN
 
 NormalizedDividerBase::NormalizedDividerBase(BlockArraySrcView AX, BlockArraySrcView BX)
     : Mybase(AX, BX) {}
 
-  
+
 LongReciprocalDivider::LongReciprocalDivider(BlockArraySrcView AX, BlockArraySrcView BX) 
     : Mybase(AX, BX)
 {
@@ -245,6 +246,14 @@ void LongReciprocalDivider::SingleBlockDiv(
     }
 }
 
+void LongReciprocalDivider::Run(BlockArrayView RAX, BlockArrayView RBX, BlockType* RDX,
+    BlockArraySrcView AX, BlockType BX)const
+{
+    SingleBlockDiv(RAX, RBX, RDX, AX, BX, 
+        SingleBlockDividerNormalizedThreshold, 
+        SingleBlockDividerUnnormalizedThreshold);
+}
+
 void LongReciprocalDivider::DoubleBlockDiv(
     BlockArrayView RAX, BlockArrayView RBX, DblBlkType* RDX, 
     BlockArraySrcView AX, DblBlkType BX)
@@ -280,6 +289,15 @@ void LongReciprocalDivider::DoubleBlockDiv(
     }
 
     if (RDX) {*RDX = {RL, RH};}
+}
+
+void LongReciprocalDivider::Run(BlockArrayView RAX, BlockArrayView RBX, ExtBlockType* RDX,
+    BlockArraySrcView AX, ExtBlockType BX)const
+{
+    DblBlkType D = __Atomic_ExtTypeToDblBlk(BX);
+    DblBlkType R;
+    DoubleBlockDiv(RAX, RBX, &R, AX, D);
+    if (RDX) {*RDX = __Atomic_DblBlkToExtType(R);}
 }
 
 void LongReciprocalDivider::Init()

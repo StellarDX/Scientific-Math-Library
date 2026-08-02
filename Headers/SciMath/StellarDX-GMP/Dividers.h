@@ -85,10 +85,46 @@
 #define _DIVIDER Dividers::
 
 _ALU_BEGIN
-_DIVIDER_BEGIN
+
+/**
+ * @brief 单块除法器
+ * @ingroup Dividers
+ */
+__interface SingleBlockDivider
+{
+    /**
+     * @brief 单块除法器主函数
+     * @param[out] RAX 商
+     * @param[out] RBX 扩展商（如果支持）
+     * @param[out] RDX 余数
+     * @param[in] AX 被除数
+     * @param[in] BX 除数（单块）
+     */
+    virtual void Run(BlockArrayView RAX, BlockArrayView RBX, BlockType* RDX,
+        BlockArraySrcView AX, BlockType BX)const = 0;
+};
+
+/**
+ * @brief 双块除法器
+ * @ingroup Dividers
+ */
+__interface DoubleBlockDivider
+{
+    /**
+     * @brief 双块除法器主函数
+     * @param[out] RAX 商
+     * @param[out] RBX 扩展商（如果支持）
+     * @param[out] RDX 余数
+     * @param[in] AX 被除数
+     * @param[in] BX 除数（双块）
+     */
+    virtual void Run(BlockArrayView RAX, BlockArrayView RBX, ExtBlockType* RDX,
+        BlockArraySrcView AX, ExtBlockType BX)const = 0;
+};
 
 /**
  * @brief 除法器
+ * @ingroup Dividers
  */
 class Divider
 {
@@ -113,8 +149,11 @@ public:
     virtual void Run(BlockArrayView RAX, BlockArrayView RBX, BlockArrayView RDX)const = 0;
 };
 
+_DIVIDER_BEGIN
+
 /**
  * @brief 标准化除法器基类，适用于那些需要被除数和除数进行规格化的除法器
+ * @ingroup Dividers
  */
 class NormalizedDividerBase : public Divider
 {
@@ -134,8 +173,9 @@ public:
 
 /**
  * @brief 竖式/倒数除法器
+ * @ingroup Dividers
  */
-class LongReciprocalDivider : NormalizedDividerBase
+class LongReciprocalDivider : public NormalizedDividerBase, public SingleBlockDivider, public DoubleBlockDivider
 {
 public:
     using Mybase     = NormalizedDividerBase;
@@ -405,6 +445,8 @@ public:
         BlockArrayView RAX, BlockArrayView RBX, BlockType* RDX,
         BlockArraySrcView AX, BlockType BX, 
         size_t TN = -1, size_t TU = -1);
+    void Run(BlockArrayView RAX, BlockArrayView RBX, BlockType* RDX,
+        BlockArraySrcView AX, BlockType BX)const override;
 
     /**
      * @brief 双块除法
@@ -417,12 +459,15 @@ public:
     static void DoubleBlockDiv(
         BlockArrayView RAX, BlockArrayView RBX, DblBlkType* RDX, 
         BlockArraySrcView AX, DblBlkType BX);
+    void Run(BlockArrayView RAX, BlockArrayView RBX, ExtBlockType* RDX,
+        BlockArraySrcView AX, ExtBlockType BX)const override;
 
     void Run(BlockArrayView RAX, BlockArrayView RBX, BlockArrayView RDX)const override;
 };
 
 /**
  * @brief 递归分治除法器
+ * @ingroup Dividers
  */
 class RecursiveDivideAndConquerDivider : LongReciprocalDivider
 {
@@ -431,6 +476,7 @@ class RecursiveDivideAndConquerDivider : LongReciprocalDivider
 
 /**
  * @brief 牛顿迭代除法器
+ * @ingroup Dividers
  */
 class NewtonIterationDivider : NormalizedDividerBase
 {

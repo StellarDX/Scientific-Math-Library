@@ -48,67 +48,72 @@ _ALU_BEGIN
 
 /**
  * @brief 减量器
+ * @ingroup Subtractors
  *
- * @details 从由数组 AX 表示的大整数中减去标量值 BX。
- *          此操作直接修改 AX 的内容。
+ * @details 从由数组AX表示的大整数中减去标量值BX。
+ *          此操作直接修改AX的内容。
  * 
  * @param[in,out] AX   目标操作数数组视图。输入为被减数，输出为减法结果。
- * @param[in]     BX   要减去的标量值。默认为 1，即执行自减操作。
+ * @param[in]     BX   要减去的标量值。默认为1，即执行自减操作。
  * @param[out]    CF   借位标志指针。
  *                     - 若非 nullptr，则存储最终的借位状态（Borrow Out）（可能为0或-1）。
  *                     - 若为 nullptr，则忽略借位输出。
  */
 void DEC(BlockArrayView AX, BlockType BX = 1, SBlockType* CF = nullptr);
 
+/**
+ * @brief 减法器
+ * @ingroup Subtractors
+ */
+__interface Subtractor
+{
+    /**
+     * @brief 减法器主函数
+     * @param[out]    DST  目标结果数组视图。必须具有足够的空间容纳计算结果。
+     * @param[in]     AX   被减数数组源视图。
+     * @param[in]     BX   减数数组源视图。
+     * @param[in]     CI   输入借位 (Carry In / Borrow In)。
+     * @param[out]    CF   输出借位指针 (Carry Out / Borrow Out)。
+     *                     - 若非 nullptr，则存储最终借位状态。（可能为0或-1）
+     *                     - 若为 nullptr，则忽略。
+     */
+    virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI = 0, SBlockType* CF = nullptr)const = 0;
+};
+
 _SUBTRACTOR_BEGIN
 
 /**
- * @brief 改进的 GMP 串行减法器
+ * @brief 改进的GMP串行减法器
+ * @ingroup Subtractors
  * 
  * @details 执行减法运算：DST = AX - BX + CI。
  *          - 始终以较长操作数的长度为准进行计算。
  *          - 负数在内部以补码形式处理。
- * 
- * @param[out]    DST  目标结果数组视图。必须具有足够的空间容纳计算结果。
- * @param[in]     AX   被减数数组源视图。
- * @param[in]     BX   减数数组源视图。
- * @param[in]     CI   输入借位 (Carry In / Borrow In)。
- * @param[out]    CF   输出借位指针 (Carry Out / Borrow Out)。
- *                     - 若非 nullptr，则存储最终借位状态。（可能为0或-1）
- *                     - 若为 nullptr，则忽略。
  */
-void GMP_SerialSubtractor(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI = 0, SBlockType* CF = nullptr);
+class SerialSubtractor : public Subtractor
+{
+public:
+    void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI = 0, SBlockType* CF = nullptr)const override;
+};
 
 _SUBTRACTOR_END
 
 /**
- * @brief 通用减法器函数指针类型
- * @details 定义了标准减法器的签名，允许动态切换减法实现算法
- */
-using SubtractorFuncType = void(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI, SBlockType* CF);
-
-/**
- * @brief 减法器函数指针
- */
-using SubtractorFunc = SubtractorFuncType*;
-
-/**
  * @brief 减法器
+ * @ingroup Subtractors
  *
- * @details 根据提供的 SUBER 函数指针执行减法操作：DST = AX - BX + CI。
- *          - 如果 SUBER 为 nullptr，则根据输入值只能选择最优减法器实现
- *            （通常为 GMP_SerialSubtractor）。
- *          - 支持自定义算法注入，便于性能测试或特定场景优化。
+ * @details 根据提供的SUBER函数指针执行减法操作：DST = AX - BX + CI。
+ *          如果SUBER为nullptr，则根据输入值只能选择最优减法器实现。
  * 
  * @param[out]    DST   目标结果数组视图。
  * @param[in]     AX    被减数数组源视图。
  * @param[in]     BX    减数数组源视图。
- * @param[in]     CI    输入借位，默认为 0。
- * @param[out]    CF    输出借位指针（值可能为0或-1），默认为 nullptr（忽略借位）。
+ * @param[in]     CI    输入借位，默认为0。
+ * @param[out]    CF    输出借位指针（值可能为0或-1），默认为nullptr（忽略借位）。
  * @param[in]     SUBER 自定义减法器函数指针。
  *                      - 默认为 nullptr，表示使用库默认实现。
  */
-void SUB(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI = 0, SBlockType* CF = nullptr, SubtractorFunc SUBER = nullptr);
+void SUB(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI = 0, SBlockType* CF = nullptr, const Subtractor* SUBER = nullptr);
 
 _ALU_END
 

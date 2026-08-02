@@ -49,7 +49,7 @@ void DEC(BlockArrayView AX, BlockType BX, SBlockType* CF)
 
 _SUBTRACTOR_BEGIN
 
-void GMP_SerialSubtractor(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI, SBlockType* CF)
+void SerialSubtractor::Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI, SBlockType* CF)const
 {
     auto AN = AX.size(), BN = BX.size();
     if (AN < BN) // 设置分类讨论以适应全部的情况，始终以长的那个为准，负数表示为补码
@@ -87,16 +87,17 @@ void GMP_SerialSubtractor(BlockArrayView DST, BlockArraySrcView AX, BlockArraySr
 
 _SUBTRACTOR_END
 
-void SUB(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI, SBlockType* CF, SubtractorFunc SUBER)
+void SUB(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI, SBlockType* CF, const Subtractor* SUBER)
 {
     if (SUBER) // 指定自定义减法器
     {
-        SUBER(DST, AX, BX, CI, CF);
+        SUBER->Run(DST, AX, BX, CI, CF);
         return;
     }
 
     // 未指定自定义减法器时智能选择
-    _SUBTRACTOR GMP_SerialSubtractor(DST, AX, BX, CI, CF);
+    _SUBTRACTOR SerialSubtractor SubtractorFunc;
+    SubtractorFunc.Run(DST, AX, BX, CI, CF);
 }
 
 _ALU_END

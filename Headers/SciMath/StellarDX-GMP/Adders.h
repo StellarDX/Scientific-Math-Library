@@ -58,22 +58,37 @@ _ALU_BEGIN
  */
 void INC(BlockArrayView AX, BlockType BX = 1, BlockType* CF = nullptr);
 
+/**
+ * @brief 加法器
+ * @ingroup Adders
+ */
+__interface Adder
+{
+    /**
+     * @brief 加法器主函数
+     * @param DST  [out] 目标缓冲区，存储加法结果
+     * @param AX   [in]  第一个加数
+     * @param BX   [in]  第二个加数
+     * @param CI   [in]  初始进位输入（0 或 1），默认为 0
+     * @param CF   [out] 最终进位输出指针，若无需获取进位可传 nullptr
+     */
+    virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI = 0, BlockType* CF = nullptr)const = 0;
+};
+
 _ADDER_BEGIN
 
 /**
- * @brief GMP 串行加法器 (Serial Adder)
+ * @brief GMP串行加法器 (Serial Adder)
  * @ingroup Adders
  *
- * 执行 DST = AX + BX + Cin，并将最终进位写入 CF。
- * 当输入输出 span 长度不一致时，以最短者为准进行安全计算，剩余部分继续处理进位。
- *
- * @param DST  [out] 目标缓冲区，存储加法结果
- * @param AX   [in]  第一个加数
- * @param BX   [in]  第二个加数
- * @param CI   [in]  初始进位输入（0 或 1），默认为 0
- * @param CF   [out] 最终进位输出指针，若无需获取进位可传 nullptr
+ * 执行DST = AX + BX + Cin，并将最终进位写入CF。
+ * 当输入输出span长度不一致时，以最短者为准进行安全计算，剩余部分继续处理进位。
  */
-void GMP_SerialAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI = 0, BlockType* CF = nullptr);
+class SerialAdder : public Adder
+{
+public:
+    void Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF)const override;
+};
 
 /**
  * @brief 超前进位并行加法器 (Carry Lookahead Parallel Adder)
@@ -82,72 +97,50 @@ void GMP_SerialAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView
  * @details 使用超前进位原理加速大数加法运算。
  *          理论上相比串行加法器的 O(n) 时间复杂度，超前进位并行加法器可将关键路径缩短至 O(log(n))。
  *          
- * @deprecated 后续研究发现，CLA 的软件实现极其复杂，且由于分支预测和缓存命中率问题，
- *             在通用 CPU 上的实际性能往往不如基于 SIMD（AVX2/AVX-512）的并行加法器。
- *             建议使用 SIMD_ParallelAdder 或 AVX512_ParallelAdder 替代。
- * @see SIMD_ParallelAdder
- * @see AVX512_ParallelAdder
+ * @deprecated 后续研究发现，CLA的软件实现极其复杂，且由于分支预测和缓存命中率问题，
+ *             在通用CPU上的实际性能往往不如基于SIMD（AVX2/AVX-512）的并行加法器。
+ *             建议使用SIMDParallelAdder或AVX512ParallelAdder替代。
  *
- * @param DST  [out] 目标缓冲区，存储加法结果
- * @param AX   [in]  第一个加数
- * @param BX   [in]  第二个加数
- * @param CI   [in]  初始进位输入（0 或 1），默认为 0
- * @param CF   [out] 最终进位输出指针，若无需获取进位可传 nullptr
+ * @see SIMDParallelAdder
+ * @see AVX512ParallelAdder
  */
-[[deprecated("此特性已废弃，请使用SIMD_ParallelAdder或AVX512_ParallelAdder")]]
-void CarryLookaheadParallelAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI = 0, BlockType* CF = nullptr);
+class [[deprecated("此特性已废弃，请使用SIMD_ParallelAdder或AVX512_ParallelAdder")]] 
+CarryLookaheadParallelAdder : public Adder
+{
+    // Dreprecated...
+};
 
 /**
- * @brief 基于 AVX2 的 SIMD 并行加法器
+ * @brief SIMD并行加法器
  * @ingroup Adders
- * 
- * @details 利用 AVX2 指令集进行单指令多数据流并行加法计算，显著提升大数加法吞吐量。
- * 
- * @param[out]    DST  目标缓冲区，存储加法结果
- * @param[in]     AX   第一个加数
- * @param[in]     BX   第二个加数
- * @param[in]     CI   初始进位输入（0 或 1），默认为 0
- * @param[out]    CF   最终进位输出指针。若无需获取进位可传 nullptr
- *
+ * @details 利用SIMD指令集进行单指令多数据流并行加法计算，显著提升大数加法吞吐量。
  * @todo 待实现
  */
-void SIMD_ParallelAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI = 0, BlockType* CF = nullptr);
+class SIMDParallelAdder : public Adder
+{
+    // TODO...
+};
 
 /**
- * @brief AVX-512 超高速并行加法器
+ * @brief AVX512超高速并行加法器
  * @ingroup Adders
  * 
- * @details 利用 AVX-512 指令集进行更高宽度的并行加法计算。
+ * @details 利用AVX512指令集进行更高宽度的并行加法计算。
  *
  * @note AVX512为英特尔特有指令集，因此本函数在其他平台实际可用情况及调用的指令集（预计）如下：
  *  - AMD：支持AVX512
  *  - 鲲鹏：SVE或SVE2
  *  - 海光：不可用
  *  - 龙芯：LASX
- * 
- * @param[out]    DST  目标缓冲区，存储加法结果
- * @param[in]     AX   第一个加数
- * @param[in]     BX   第二个加数
- * @param[in]     CI   初始进位输入（0 或 1），默认为 0
- * @param[out]    CF   最终进位输出指针。若无需获取进位可传 nullptr
  *
  * @todo 待实现
  */
-void AVX512_ParallelAdder(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI = 0, BlockType* CF = nullptr);
+typedef class AVX512ParallelAdder : public Adder
+{
+    // TODO
+}SVEParallelAdder, LASXParallelAdder;
 
 _ADDER_END
-
-/**
- * @brief 加法器函数指针类型定义
- * @ingroup Adders
- */
-using AdderFuncType = void(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI, BlockType* CF);
-
-/**
- * @brief 加法器函数指针
- * @ingroup Adders
- */
-using AdderFunc = AdderFuncType*;
 
 /**
  * @brief 加法器
@@ -159,10 +152,10 @@ using AdderFunc = AdderFuncType*;
  * @param AX     [in]  第一个加数
  * @param BX     [in]  第二个加数
  * @param CI     [in]  初始进位输入，默认为 0
- * @param CF     [out] 最终进位输出指针，默认为 nullptr
- * @param ADDER  [in]  指定的加法器函数指针，默认为 nullptr
+ * @param CF     [out] 最终进位输出，默认为 nullptr
+ * @param ADDER  [in]  自定义加法器，默认为 nullptr
  */
-void ADD(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI = 0, BlockType* CF = nullptr, AdderFunc ADDER = nullptr);
+void ADD(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI = 0, BlockType* CF = nullptr, const Adder* ADDER = nullptr);
 
 _ALU_END
 
