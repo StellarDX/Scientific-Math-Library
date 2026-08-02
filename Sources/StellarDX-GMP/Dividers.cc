@@ -294,20 +294,86 @@ void LongReciprocalDivider::DoubleBlockDiv(
 void LongReciprocalDivider::Run(BlockArrayView RAX, BlockArrayView RBX, ExtBlockType* RDX,
     BlockArraySrcView AX, ExtBlockType BX)const
 {
+    size_t Shift = std::countl_zero(BX);
+    BlockArray AXS;
+    AXS.reserve(AX.size() + 1);
+    AXS.resize(AX.size());
+    if (Shift)
+    {
+        BlockType CL = 0;
+        SHL(AXS, AX, Shift, &CL);
+        if (CL) {AXS.push_back(CL);}
+        BX <<= Shift;
+    }
     DblBlkType D = __Atomic_ExtTypeToDblBlk(BX);
     DblBlkType R;
-    DoubleBlockDiv(RAX, RBX, &R, AX, D);
-    if (RDX) {*RDX = __Atomic_DblBlkToExtType(R);}
+    DoubleBlockDiv(RAX, RBX, &R, AXS, D);
+    if (RDX)
+    {
+        *RDX = __Atomic_DblBlkToExtType(R) >> Shift;
+    }
 }
 
 void LongReciprocalDivider::Init()
 {
+    // 除数只有1块时不做预处理，因为规格化的过程已经在计算阶段自动进行了
+    if (DenominatorOriginalView.size() == 1) {return;}
 
+    if (DenominatorOriginalView.size() == 2 && !(DenominatorOriginalView.back() & BHBIT))
+    {
+        Shift = std::countl_zero(DenominatorOriginalView.back());
+
+        Numerator.reserve(NumeratorOriginalView.size() + 1);
+        Numerator.resize(NumeratorOriginalView.size());
+        BlockType CL = 0;
+        SHL(Numerator, NumeratorOriginalView, Shift, &CL);
+        if (CL) {Numerator.push_back(CL);}
+
+        Denominator.resize(2);
+        Denominator.at(0) = DenominatorOriginalView.at(0) << Shift;
+        Denominator.at(1) = (DenominatorOriginalView.at(1) << Shift) |
+            (DenominatorOriginalView.at(0) >> (BSIZE - Shift));
+        
+        // 此处不处理倒数，在计算阶段处理
+        return;
+    }
 }
 
 void LongReciprocalDivider::Run(BlockArrayView RAX, BlockArrayView RBX, BlockArrayView RDX)const
 {
+    if (DenominatorOriginalView.size() == 1)
+    {
+        SingleBlockDiv(RAX, RBX, &RDX.front(), 
+            NumeratorOriginalView, DenominatorOriginalView.front(), 
+            SingleBlockDividerNormalizedThreshold, 
+            SingleBlockDividerUnnormalizedThreshold);
+        return;
+    }
 
+    if (DenominatorOriginalView.size() == 2)
+    {
+        BlockArraySrcView N = Numerator.empty() ? NumeratorOriginalView : Numerator;
+        BlockArraySrcView D = Denominator.empty() ? DenominatorOriginalView : Denominator;
+        DblBlkType R;
+        DoubleBlockDiv(RAX, RBX, &R, N, {D.at(0), D.at(1)});
+        RDX.at(0) = (R.first >> Shift) | (R.second << (BSIZE - Shift));
+        RDX.at(1) = (R.second >> Shift);
+        return;
+    }
+
+    // 估算一下商的大小，然后根据这个决定不同的计算策略
+    std::size_t QSize = DenominatorOriginalView.size() + 
+        (NumeratorOriginalView.back() >= DenominatorOriginalView.back() ? 1 : 0);
+    if (QSize >= 2 * DenominatorOriginalView.size())
+    {
+        // |________________________| 被除数
+        //                  |_______| 除数
+    }
+    else
+    {
+        // |________________________| 被除数
+        //        |_________________| 除数
+    }
 }
 
 _DIVIDER_END

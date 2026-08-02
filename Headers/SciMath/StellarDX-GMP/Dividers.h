@@ -163,7 +163,7 @@ public:
 protected:
     BlockArray Numerator;       ///<被除数（处理后）
     BlockArray Denominator;     ///<除数（处理后）
-    size_t     Shift;           ///<移位数
+    size_t     Shift = 0;       ///<移位数
     BlockType  DenomReciprocal; ///<除数的倒数
 
 public:
@@ -187,7 +187,7 @@ public:
     /// @brief 单块除法器执行除数最高位不为1的除法时，被除数块数高于此值切换为倒数除法器
     size_t SingleBlockDividerUnnormalizedThreshold = -1;
 
-public:
+protected:
     /**
      * @brief 原子操作：把两个块按LE合并为一个大块
      * @param AX 输入块，低位放first，高位放second
