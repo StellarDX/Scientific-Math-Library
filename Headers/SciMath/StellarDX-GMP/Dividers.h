@@ -536,6 +536,7 @@ _DIVIDER_END
 
 /**
  * @brief 单块除法器
+ * @ingroup Dividers
  * @param RAX 商
  * @param RDX 余数
  * @param AX 被除数
@@ -547,6 +548,7 @@ __declspec(deprecated("DIV1的功能DIV也能完成，请使用DIV")) void DIV1(
 
 /**
  * @brief 双块除法器
+ * @ingroup Dividers
  * @param RAX 商
  * @param RDX 余数
  * @param AX 被除数
@@ -558,6 +560,7 @@ __declspec(deprecated("DIV2的功能DIV也能完成，请使用DIV")) void DIV2(
 
 /**
  * @brief 除法器
+ * @ingroup Dividers
  * @param RAX 商
  * @param RDX 余数
  * @param AX 被除数

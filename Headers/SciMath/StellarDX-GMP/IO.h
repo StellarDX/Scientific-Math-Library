@@ -1,6 +1,6 @@
 /**
  * @file IO.h
- * @defgroup IO 字节数组输入输出
+ * @defgroup IO 输入输出
  * @ingroup IPN
  * @author StellarDX Astronomy (1829934307@qq.com)
  * @brief ByteArray和一些基本指令，是无限精度整数/无限精度浮点/无限精度十进制浮点的基础

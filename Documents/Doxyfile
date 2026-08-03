@@ -2587,7 +2587,23 @@ PREDEFINED             = "__interface=struct" \
                          "STDMETHOD(method)=virtual HRESULT method" \
                          "STDMETHOD_(type,method)=virtual type method" \
                          "PURE==0" \
-                         "INTERFACE=struct"
+                         "INTERFACE=struct" \
+                         "_ALU_BEGIN=namespace ALU {" \
+                         "_ALU_END=}" \
+                         "_ALU=ALU::" \
+                         "_ADDER_BEGIN=namespace Adders {" \
+                         "_ADDER_END=}" \
+                         "_ADDER=Adders::" \
+                         "_SUBTRACTOR_BEGIN=namespace Subtractors {" \
+                         "_SUBTRACTOR_END=}" \
+                         "_SUBTRACTOR=Subtractors::" \
+                         "_MULTIPLIER_BEGIN=namespace Multipliers {" \
+                         "_MULTIPLIER_END=}" \
+                         "_MULTIPLIER=Multipliers::" \
+                         "_DIVIDER_BEGIN=namespace Dividers {" \
+                         "_DIVIDER_END=}" \
+                         "_DIVIDER=Dividers::"
+
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The
