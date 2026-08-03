@@ -32,7 +32,7 @@
  */
 
 #include <ranges>
-#include "SciMath/StellarDX-GMP/整数乘法器的长征.h"
+#include "SciMath/StellarDX-GMP/Multipliers.h"
 
 _ALU_BEGIN
 

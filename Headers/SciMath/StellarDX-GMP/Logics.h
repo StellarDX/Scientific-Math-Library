@@ -44,6 +44,7 @@ _ALU_BEGIN
 
 /**
  * @brief 与运算，结果长度取决于短的那个操作数（0 & 任何数 = 0）
+ * @ingroup Logics
  * @param DST 结果
  * @param AX 操作数1
  * @param BX 操作数2
@@ -52,6 +53,7 @@ void AND(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX);
 
 /**
  * @brief 或运算，结果长度取决于长的那个操作数（0 | 任何数 = 任何数）
+ * @ingroup Logics
  * @param DST 结果
  * @param AX 操作数1
  * @param BX 操作数2
@@ -60,6 +62,7 @@ void OR(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX);
 
 /**
  * @brief 异或运算，结果长度取决于长的那个操作数（0 ^ 任何数 = 任何数）
+ * @ingroup Logics
  * @param DST 结果
  * @param AX 操作数1
  * @param BX 操作数2
@@ -68,6 +71,7 @@ void XOR(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX);
 
 /**
  * @brief 非运算
+ * @ingroup Logics
  * @param DST 结果
  * @param AX 操作数1
  */
@@ -75,6 +79,7 @@ void NOT(BlockArrayView DST, BlockArraySrcView AX);
 
 /**
  * @brief 左移位
+ * @ingroup Logics
  * @param DST 结果
  * @param AX 操作数1
  * @param BX 移位数，不能超过块大小，整块移位请使用MOV（+STD）
@@ -83,6 +88,7 @@ void SHL(BlockArrayView DST, BlockArraySrcView AX, std::size_t BX, BlockType* CF
 
 /**
  * @brief 右移位
+ * @ingroup Logics
  * @param DST 结果
  * @param AX 操作数1
  * @param BX 移位数，不能超过块大小，整块移位请使用MOV

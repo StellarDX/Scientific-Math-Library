@@ -9,21 +9,25 @@
     一种“下一状态需要上一状态推导”的过程，无法真正实现完全的并行化，也就意味着它很难吃满分治带
     来的优势，甚至就连硬件除法器也难以通过堆料的方式获得更好的提升效果（除非增加U的面积）。
     例如GMP在它刚诞生的时期，爆出了如下的大料：
-    >                    64-bit divisor       32-bit divisor\
-    >                      cycles/limb          cycles/limb\
-    >                       (approx)             (approx)\
-    >                  integer  fraction    integer  fraction\
-    >  Ultrasparc 2i:    160      160          122      96\
-    >
-    >  32-bit divisors are treated in special case code.  This requires 4 mulx
-    >  per limb instead of 8 in the general case.
-    >  For big endian systems we need HALF_ENDIAN_ADJ included in the src[i]
-    >  addressing, to get the two halves of each limb read in the correct order.
-    >  This is kept in an adj variable.  Doing that measures about 4 c/l faster
-    >  than just writing HALF_ENDIAN_ADJ(i) in the integer loop.  The latter
-    >  shouldn't be 6 cycles worth of work, but perhaps it doesn't schedule well
-    >  (on gcc 3.2.1 at least).  The fraction loop doesn't seem affected, but we
-    >  still use a variable since that ought to work out best.  
+
+    ```text
+                      64-bit divisor       32-bit divisor
+                        cycles/limb          cycles/limb
+                         (approx)             (approx)
+                    integer  fraction    integer  fraction
+    Ultrasparc 2i:    160      160          122      96
+     
+    32-bit divisors are treated in special case code.  This requires 4 mulx
+    per limb instead of 8 in the general case.
+    For big endian systems we need HALF_ENDIAN_ADJ included in the src[i]
+    addressing, to get the two halves of each limb read in the correct order.
+    This is kept in an adj variable.  Doing that measures about 4 c/l faster
+    than just writing HALF_ENDIAN_ADJ(i) in the integer loop.  The latter
+    shouldn't be 6 cycles worth of work, but perhaps it doesn't schedule well
+    (on gcc 3.2.1 at least).  The fraction loop doesn't seem affected, but we
+    still use a variable since that ought to work out best.  
+    ```
+
     文中的Ultrasparc 2i就是是当年Sun的那只“黑鸟”，定位是一款中低端服务器U。这个U在它主导的
     年代混的堪称风生水起——不像高端型号那样追求极限性能，在性能、成本和集成度之间找到了绝佳平衡，
     然后又在互联网泡沫的巅峰期乘上了东风——衍生产品Ultra 5和Ultra 10成了当时的“性价比之王”。
@@ -36,23 +40,25 @@
     这一个U这样，当时几乎所有RISC的U都一个鸟样。Google的首席工程师Eric Dumazet在2006年在
     一封邮件里头提到，某款sparcv9的U执行一次除法需要消耗64个时钟周期。紧接着Linux开发者戴维·
     米勒在回信中爆出了一个更大的瓜：
-    >For UltraSPARC I and II (which is what this 200mhz guy probably is),
-    >it's 4 cycle latency for a multiply (32-bit or 64-bit) and 68 cycles
-    >for a 64-bit divide (32-bit divide is 37 cycles).
-    >
-    >UltraSPARC-III and IV are worse, 6 cycles for multiply and 40/71
-    >cycles (32/64-bit) for integer divides.
-    >
-    >Niagara is even worse :-)  11 cycle integer multiply and a 72 cycle
-    >integer divide (regardless of 32-bit or 64-bit).
-    >
-    >(more details in gcc/config/sparc/sparc.c:{ultrasparc,ultrasparc3,niagara}_cost).
-    >
-    >So this change has tons of merit for sparc64 chips at least :-)
-    >
-    >Also, the multiply can parallelize with other operations but it
-    >seems that integer divide stalls the pipe for most of the duration
-    >of the calculation.  So this makes the divide even worse.
+
+    > For UltraSPARC I and II (which is what this 200mhz guy probably is),
+    > it's 4 cycle latency for a multiply (32-bit or 64-bit) and 68 cycles
+    > for a 64-bit divide (32-bit divide is 37 cycles).<br>
+    > <br>
+    > UltraSPARC-III and IV are worse, 6 cycles for multiply and 40/71
+    > cycles (32/64-bit) for integer divides.<br>
+    > <br>
+    > Niagara is even worse :-)  11 cycle integer multiply and a 72 cycle
+    > integer divide (regardless of 32-bit or 64-bit).<br>
+    > <br>
+    > (more details in gcc/config/sparc/sparc.c:{ultrasparc,ultrasparc3,niagara}_cost).<br>
+    > <br>
+    > So this change has tons of merit for sparc64 chips at least :-)<br>
+    > <br>
+    > Also, the multiply can parallelize with other operations but it
+    > seems that integer divide stalls the pipe for most of the duration
+    > of the calculation.  So this makes the divide even worse.
+
     这也就意味着，如果用当时的U，执行一次除法产生的开销至少能够计算8次乘法。而且这还没完，GMP
     文档中还有一个值得注意的地方，就是SPARC9的U寻址方式是大端序，而GMP的存储方式是小端序，这
     样一来又会增加一大笔寻址产生的开销而且可能还会干扰指令调度。当时GCC3的调度器有个非常恼人
@@ -499,12 +505,12 @@ class NewtonIterationDivider : public NormalizedDividerBase
  * @details
  * GMP指出，影响除法器的时间复杂度最大的因素是除数的大小，在除数相对较小时，也就是：
  *
- * |________________________| 被除数\
+ * |________________________| 被除数<br>
  *                  |_______| 除数
  *
  * 这时可以直接调用除法器计算，但是除数较大（商的长度远小于除数）时，也就是：
  *
- * |________________________| 被除数\
+ * |________________________| 被除数<br>
  *        |_________________| 除数
  *
  * 这是如果还直接使用除法器，由于除数太长，数字一大性能一拖四。因此在这种情况下需要对除法器进

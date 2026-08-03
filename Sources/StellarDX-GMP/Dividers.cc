@@ -34,7 +34,7 @@
 #include "SciMath/StellarDX-GMP/Dividers.h"
 #include "SciMath/StellarDX-GMP/IO.h"
 #include "SciMath/StellarDX-GMP/SMLDefs.h"
-#include "SciMath/StellarDX-GMP/整数乘法器的长征.h"
+#include "SciMath/StellarDX-GMP/Multipliers.h"
 #include "SciMath/StellarDX-GMP/Logics.h"
 #include "SciMath/StellarDX-GMP/Subtractors.h"
 #include "SciMath/StellarDX-GMP/Adders.h"

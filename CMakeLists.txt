@@ -201,3 +201,39 @@ install(EXPORT ${TargetsExportName} DESTINATION ${SML_CMakeConfigDirectory}
           NAMESPACE SciMath::)
 
 install(FILES "${PackageConfig}" DESTINATION "${SML_PackageConfigDirectory}")
+
+# 编译文档
+
+option(SML_Documents "编译文档" ${SML_IsMaster})
+
+function(CompileDocuments)
+    find_program(DOXYGEN_EXECUTABLE doxygen PATHS ${SML_DoxyPath})
+    if (NOT DOXYGEN_EXECUTABLE)
+        message(STATUS "文档编译已取消，因为没找到DOxygen主程序")
+        return()
+    endif ()
+    message(STATUS "DOxygen目录：${DOXYGEN_EXECUTABLE}")
+
+    configure_file(
+        ${PROJECT_SOURCE_DIR}/Documents/Doxyfile
+        ${PROJECT_BINARY_DIR}/Doxyfile
+        @ONLY)
+    
+    add_custom_target(SciMath_Documents
+        COMMAND ${DOXYGEN_EXECUTABLE} Doxyfile
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+        COMMENT "用Doxygen生成API文档"
+        VERBATIM)
+
+    install(
+        DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/DOxyDocs/
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/Documents/SciMath
+        COMPONENT SciMath_Documents
+        OPTIONAL)
+endfunction()
+
+if (SML_Documents)
+    SetCacheVariable(SML_DoxyPath "" CACHE PATH
+        "DOxygen安装目录，用于生成文档")
+    CompileDocuments()
+endif()
