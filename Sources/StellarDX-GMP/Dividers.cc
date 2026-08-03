@@ -316,13 +316,11 @@ void LongReciprocalDivider::Run(BlockArrayView RAX, BlockArrayView RBX, ExtBlock
     BlockArray AXS;
     AXS.reserve(AX.size() + 1);
     AXS.resize(AX.size());
-    if (Shift)
-    {
-        BlockType CL = 0;
-        SHL(AXS, AX, Shift, &CL);
-        if (CL) {AXS.push_back(CL);}
-        BX <<= Shift;
-    }
+    BlockType CL = 0;
+    SHL(AXS, AX, Shift, &CL);
+    if (CL) {AXS.push_back(CL);}
+    BX <<= Shift;
+
     DblBlkType D = __Atomic_ExtTypeToDblBlk(BX);
     DblBlkType R;
     DoubleBlockDiv(RAX, RBX, &R, AXS, D);
@@ -446,5 +444,43 @@ void WideDenominator::Run(BlockArrayView RAX, BlockArrayView RBX, BlockArrayView
 }
 
 _DIVIDER_END
+
+void DIV1(BlockArrayView RAX, BlockType* RDX, BlockArraySrcView AX, BlockType BX, const SingleBlockDivider* DIVER)
+{
+    if (DIVER)
+    {
+        DIVER->Run(RAX, BlockArrayView(), RDX, AX, BX);
+        return;
+    }
+
+    std::array D{BX};
+    _DIVIDER LongReciprocalDivider Div(AX, D);
+    Div.Run(RAX, BlockArrayView(), RDX, AX, BX);
+}
+
+void DIV2(BlockArrayView RAX, ExtBlockType* RDX, BlockArraySrcView AX, ExtBlockType BX, const DoubleBlockDivider* DIVER)
+{
+    if (DIVER)
+    {
+        DIVER->Run(RAX, BlockArrayView(), RDX, AX, BX);
+        return;
+    }
+
+    std::array D{BlockType(BX), BlockType(BX >> BSIZE)};
+    _DIVIDER LongReciprocalDivider Div(AX, D);
+    Div.Run(RAX, BlockArrayView(), RDX, AX, BX);
+}
+
+void DIV(BlockArrayView RAX, BlockArrayView RDX, BlockArraySrcView AX, BlockArrayView BX, const Divider* DIVER)
+{
+    if (DIVER)
+    {
+        DIVER->Run(RAX, BlockArrayView(), RDX);
+        return;
+    }
+
+    _DIVIDER LongReciprocalDivider Div(AX, BX);
+    Div.Run(RAX, BlockArrayView(), RDX);
+}
 
 _ALU_END

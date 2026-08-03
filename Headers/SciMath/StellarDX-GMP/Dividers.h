@@ -91,8 +91,9 @@ _ALU_BEGIN
 /**
  * @brief 单块除法器
  * @ingroup Dividers
+ * @deprecated 请使用Divider类，它已集成此功能。
  */
-__interface SingleBlockDivider
+__interface __declspec(deprecated("Divider已经集成SingleBlockDivider的功能，请使用Divider")) SingleBlockDivider
 {
     /**
      * @brief 单块除法器主函数
@@ -109,8 +110,9 @@ __interface SingleBlockDivider
 /**
  * @brief 双块除法器
  * @ingroup Dividers
+ * @deprecated 请使用Divider类，它已集成此功能。
  */
-__interface DoubleBlockDivider
+__interface __declspec(deprecated("Divider已经集成DoubleBlockDivider的功能，请使用Divider")) DoubleBlockDivider
 {
     /**
      * @brief 双块除法器主函数
@@ -167,8 +169,8 @@ protected:
     size_t     Shift = 0;       ///<移位数
     BlockType  DenomReciprocal; ///<除数的倒数
 
-    virtual void Init() = 0; ///<初始化函数
-    void Normalize();
+    virtual void Init() = 0;    ///<初始化函数
+    void Normalize();           ///<操作数预处理
 
 public:
     NormalizedDividerBase(BlockArraySrcView AX, BlockArraySrcView BX);
@@ -387,6 +389,11 @@ protected:
     void Init()override;
 
 public:
+    /**
+     * @brief 构造函数
+     * @param AX 被除数
+     * @param BX 除数
+     */
     LongReciprocalDivider(BlockArraySrcView AX, BlockArraySrcView BX);
 
     /**
@@ -520,6 +527,38 @@ public:
 };
 
 _DIVIDER_END
+
+/**
+ * @brief 单块除法器
+ * @param RAX 商
+ * @param RDX 余数
+ * @param AX 被除数
+ * @param BX 除数
+ * @param DIVER 自定义除法器，如果为nullptr，则根据操作数情况智能选择
+ * @deprecated DIV1的功能DIV也能完成，请使用DIV
+ */
+__declspec(deprecated("DIV1的功能DIV也能完成，请使用DIV")) void DIV1(BlockArrayView RAX, BlockType* RDX, BlockArraySrcView AX, BlockType BX, const SingleBlockDivider* DIVER = nullptr);
+
+/**
+ * @brief 双块除法器
+ * @param RAX 商
+ * @param RDX 余数
+ * @param AX 被除数
+ * @param BX 除数
+ * @param DIVER 自定义除法器，如果为nullptr，则根据操作数情况智能选择
+ * @deprecated DIV2的功能DIV也能完成，请使用DIV
+ */
+__declspec(deprecated("DIV2的功能DIV也能完成，请使用DIV")) void DIV2(BlockArrayView RAX, ExtBlockType* RDX, BlockArraySrcView AX, ExtBlockType BX, const DoubleBlockDivider* DIVER = nullptr);
+
+/**
+ * @brief 除法器
+ * @param RAX 商
+ * @param RDX 余数
+ * @param AX 被除数
+ * @param BX 除数
+ * @param DIVER 自定义除法器，如果为nullptr，则根据操作数情况智能选择
+ */
+void DIV(BlockArrayView RAX, BlockArrayView RDX, BlockArraySrcView AX, BlockArrayView BX, const Divider* DIVER = nullptr);
 
 _ALU_END
 

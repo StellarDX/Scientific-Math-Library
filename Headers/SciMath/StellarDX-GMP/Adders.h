@@ -146,7 +146,7 @@ _ADDER_END
  * @brief 加法器
  * @ingroup Adders
  *
- * 执行加法运算，如果 ADDER 为 nullptr，则根据传入值智能选择加法器（通常为 GMP_SerialAdder）。
+ * 执行加法运算，如果ADDER为nullptr，则根据传入值智能选择加法器（通常为 GMP_SerialAdder）。
  *
  * @param DST    [out] 目标缓冲区，存储加法结果
  * @param AX     [in]  第一个加数

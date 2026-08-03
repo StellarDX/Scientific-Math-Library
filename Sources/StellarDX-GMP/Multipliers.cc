@@ -98,14 +98,24 @@ _MULTIPLIER_END
 
 void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const SingleBlockMultiplier* MULER)
 {
-    if (MULER) {MULER->Run(DST, AX, BX);}
+    if (MULER)
+    {
+        MULER->Run(DST, AX, BX);
+        return;
+    }
+
     _MULTIPLIER LongMultiplier Mul;
     Mul.Run(DST, AX, BX);
 }
 
 void MUL(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, const Multiplier* MULER)
 {
-    if (MULER) {MULER->Run(DST, AX, BX);}
+    if (MULER)
+    {
+        MULER->Run(DST, AX, BX);
+        return;
+    }
+
     _MULTIPLIER LongMultiplier Mul;
     Mul.Run(DST, AX, BX);
 }

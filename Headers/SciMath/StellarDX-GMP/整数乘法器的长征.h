@@ -363,7 +363,7 @@ _MULTIPLIER_END
  * @param[out] DST   积的结果数组视图。
  * @param[in]  AX    被乘数数组视图。
  * @param[in]  BX    乘数（单块）。
- * @param[in]  MULER 用户指定的乘法器实例。若为 nullptr，则根据输入长度智能选择。
+ * @param[in]  MULER 用户指定的乘法器实例。若为nullptr，则根据输入长度智能选择。
  */
 void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const SingleBlockMultiplier* MULER = nullptr);
 
@@ -372,7 +372,7 @@ void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const SingleBl
  * @ingroup Multipliers
  * 
  * @details 根据输入参数执行多块乘法。
- *          （如在 LongMultiplier, ToomCookMultiplier, FFTMultiplier 之间切换）。
+ *          （如在LongMultiplier, ToomCookMultiplier, FFTMultiplier 之间切换）。
  * 
  * @param[out] DST   积的结果数组视图。
  * @param[in]  AX    被乘数数组视图。
