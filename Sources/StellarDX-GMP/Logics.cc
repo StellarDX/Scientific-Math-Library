@@ -32,7 +32,7 @@
  */
 
 #include "SciMath/StellarDX-GMP/Logics.h"
-#include "SciMath/StellarDX-GMP/SMLDefs.h"
+#include "SciMath/StellarDX-GMP/IO.h"
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
@@ -83,6 +83,12 @@ void SHL(BlockArrayView DST, BlockArraySrcView AX, std::size_t BX, BlockType* CF
         Panic("SHL：移位块数不能超过块大小，整块移位请使用MOV(+STD)");
     }
 
+    if (BX == 0)
+    {
+        MOV(DST, AX);
+        return;
+    }
+
     std::size_t TNC = BSIZE - BX;
     BlockType LB = AX.back();
     BlockType C = LB >> TNC;
@@ -105,6 +111,12 @@ void SHR(BlockArrayView DST, BlockArraySrcView AX, std::size_t BX, BlockType* CF
     if (BX > BSIZE)
     {
         Panic("SHR：移位块数不能超过块大小，整块移位请使用MOV");
+    }
+
+    if (BX == 0)
+    {
+        MOV(DST, AX);
+        return;
     }
 
     std::size_t TNC = BSIZE - BX;

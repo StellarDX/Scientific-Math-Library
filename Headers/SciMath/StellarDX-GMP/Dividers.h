@@ -58,7 +58,8 @@
     样一来又会增加一大笔寻址产生的开销而且可能还会干扰指令调度。当时GCC3的调度器有个非常恼人
     的特性是如果不把一些值缓存到变量会凭空生成一堆没什么卵用的指令。以上种种因素相互叠加耦合的
     结果就是本来就龟速的除法运算搞得更是“一拖四”。这也就是为什么GMP诞生时仅仅为了优化一个小小
-    的除法器写了一吨代码。当然到了现在随着编译器不断升级以及硬件层SRT器和OoO（乱序执行）的引
+    的除法器写了一吨代码，搞得整个模块唯一的特征就是计算量巨大，全程各种地方都充斥着各种由加法，
+    减法和乘法组成的爆算。当然到了现在随着编译器不断升级以及硬件层SRT器和OoO（乱序执行）的引
     入，硬件除法器也得到了完整的流水线化并降低了延迟，实测std::div的速度已经能追平当年GMP的
     优化了。另外IEEE在一篇文章中提到，目前的先进除法器已经有能力在2个时钟周期内完成一次运算。
     因此本文的除法器直接用汇编写，因为std::div不支持无符号除法，而有符号除法和无符号除法语义
@@ -75,6 +76,7 @@
 
 #pragma once
 
+#include <memory>
 #ifndef __Dividers__
 #define __Dividers__
 
@@ -128,11 +130,10 @@ __interface DoubleBlockDivider
  */
 class Divider
 {
-protected:
+public:
     BlockArraySrcView NumeratorOriginalView;   ///<被除数（原始）
     BlockArraySrcView DenominatorOriginalView; ///<除数（原始）
 
-public:
     /**
      * @brief 构造函数
      * @param AX 被除数
@@ -166,9 +167,11 @@ protected:
     size_t     Shift = 0;       ///<移位数
     BlockType  DenomReciprocal; ///<除数的倒数
 
+    virtual void Init() = 0; ///<初始化函数
+    void Normalize();
+
 public:
     NormalizedDividerBase(BlockArraySrcView AX, BlockArraySrcView BX);
-    virtual void Init() = 0; ///<初始化函数
 };
 
 /**
@@ -469,7 +472,7 @@ public:
  * @brief 递归分治除法器
  * @ingroup Dividers
  */
-class RecursiveDivideAndConquerDivider : LongReciprocalDivider
+class RecursiveDivideAndConquerDivider : public LongReciprocalDivider
 {
     // TODO
 };
@@ -478,9 +481,42 @@ class RecursiveDivideAndConquerDivider : LongReciprocalDivider
  * @brief 牛顿迭代除法器
  * @ingroup Dividers
  */
-class NewtonIterationDivider : NormalizedDividerBase
+class NewtonIterationDivider : public NormalizedDividerBase
 {
     // TODO
+};
+
+/**
+ * @brief 应对超大除数时用的封装类
+ * @ingroup Dividers
+ * @details
+ * GMP指出，影响除法器的时间复杂度最大的因素是除数的大小，在除数相对较小时，也就是：
+ *
+ * |________________________| 被除数\
+ *                  |_______| 除数
+ *
+ * 这时可以直接调用除法器计算，但是除数较大（商的长度远小于除数）时，也就是：
+ *
+ * |________________________| 被除数\
+ *        |_________________| 除数
+ *
+ * 这是如果还直接使用除法器，由于除数太长，数字一大性能一拖四。因此在这种情况下需要对除法器进
+ * 行封装，让影响时间复杂度的最大因素由除数大小变成商的大小。
+ */
+class WideDenominator : public NormalizedDividerBase
+{
+public:
+    using Mybase = NormalizedDividerBase;
+
+protected:
+    std::shared_ptr<Divider> Base;
+
+    void Init()override; // TODO
+
+public:
+    WideDenominator(std::shared_ptr<Divider> DIVER);
+
+    void Run(BlockArrayView RAX, BlockArrayView RBX, BlockArrayView RDX)const override; // TODO
 };
 
 _DIVIDER_END

@@ -33,9 +33,13 @@
 
 #include "SciMath/StellarDX-GMP/Dividers.h"
 #include "SciMath/StellarDX-GMP/IO.h"
+#include "SciMath/StellarDX-GMP/SMLDefs.h"
 #include "SciMath/StellarDX-GMP/整数乘法器的长征.h"
 #include "SciMath/StellarDX-GMP/Logics.h"
+#include "SciMath/StellarDX-GMP/Subtractors.h"
+#include "SciMath/StellarDX-GMP/Adders.h"
 
+#include <algorithm>
 #include <bit>
 #include <iterator>
 #include <ranges>
@@ -55,6 +59,20 @@ _DIVIDER_BEGIN
 
 NormalizedDividerBase::NormalizedDividerBase(BlockArraySrcView AX, BlockArraySrcView BX)
     : Mybase(AX, BX) {}
+
+void NormalizedDividerBase::Normalize()
+{
+    Shift = std::countl_zero(DenominatorOriginalView.back());
+
+    Numerator.reserve(NumeratorOriginalView.size() + 1);
+    Numerator.resize(NumeratorOriginalView.size());
+    BlockType CL = 0;
+    SHL(Numerator, NumeratorOriginalView, Shift, &CL);
+    if (CL) {Numerator.push_back(CL);}
+
+    Denominator.resize(DenominatorOriginalView.size());
+    SHL(Denominator, DenominatorOriginalView, Shift);
+}
 
 
 LongReciprocalDivider::LongReciprocalDivider(BlockArraySrcView AX, BlockArraySrcView BX) 
@@ -321,22 +339,13 @@ void LongReciprocalDivider::Init()
 
     if (DenominatorOriginalView.size() == 2 && !(DenominatorOriginalView.back() & BHBIT))
     {
-        Shift = std::countl_zero(DenominatorOriginalView.back());
-
-        Numerator.reserve(NumeratorOriginalView.size() + 1);
-        Numerator.resize(NumeratorOriginalView.size());
-        BlockType CL = 0;
-        SHL(Numerator, NumeratorOriginalView, Shift, &CL);
-        if (CL) {Numerator.push_back(CL);}
-
-        Denominator.resize(2);
-        Denominator.at(0) = DenominatorOriginalView.at(0) << Shift;
-        Denominator.at(1) = (DenominatorOriginalView.at(1) << Shift) |
-            (DenominatorOriginalView.at(0) >> (BSIZE - Shift));
-        
+        Normalize();
         // 此处不处理倒数，在计算阶段处理
         return;
     }
+
+    Normalize();
+    DenomReciprocal = MakeReciprocal2({*(Denominator.rbegin() + 1), Denominator.back()});
 }
 
 void LongReciprocalDivider::Run(BlockArrayView RAX, BlockArrayView RBX, BlockArrayView RDX)const
@@ -350,10 +359,11 @@ void LongReciprocalDivider::Run(BlockArrayView RAX, BlockArrayView RBX, BlockArr
         return;
     }
 
+    BlockArraySrcView N = Numerator.empty() ? NumeratorOriginalView : Numerator;
+    BlockArraySrcView D = Denominator.empty() ? DenominatorOriginalView : Denominator;
+
     if (DenominatorOriginalView.size() == 2)
     {
-        BlockArraySrcView N = Numerator.empty() ? NumeratorOriginalView : Numerator;
-        BlockArraySrcView D = Denominator.empty() ? DenominatorOriginalView : Denominator;
         DblBlkType R;
         DoubleBlockDiv(RAX, RBX, &R, N, {D.at(0), D.at(1)});
         RDX.at(0) = (R.first >> Shift) | (R.second << (BSIZE - Shift));
@@ -361,19 +371,78 @@ void LongReciprocalDivider::Run(BlockArrayView RAX, BlockArrayView RBX, BlockArr
         return;
     }
 
-    // 估算一下商的大小，然后根据这个决定不同的计算策略
-    std::size_t QSize = DenominatorOriginalView.size() + 
-        (NumeratorOriginalView.back() >= DenominatorOriginalView.back() ? 1 : 0);
-    if (QSize >= 2 * DenominatorOriginalView.size())
+    auto NN = N.size(), DN = D.size();
+    BlockArray R(N.begin(), N.end());
+    BlockArrayView RP = R;
+
+    auto QH = CMP(RP.subspan(NN - DN, DN), D);
+    if (QH == QH.greater)
     {
-        // |________________________| 被除数
-        //                  |_______| 除数
+        SUB(RP.subspan(NN - DN, DN), RP.subspan(NN - DN, DN), D);
+        *(RAX.begin() + (NN - DN)) = 1;
     }
-    else
+    else {*(RAX.begin() + (NN - DN)) = 0;}
+
+    auto QI = std::reverse_iterator{RAX.begin() + (NN - DN)};
+
+    auto DR = D.subspan(0, DN - 2);
+
+    DblBlkType DH{*(D.rbegin() + 1), D.back()};
+    BlockType N1 = RP.back(), N0;
+
+    auto NS = RP | std::ranges::views::slide(DN) | std::ranges::views::reverse;
+    for (auto NI = NS.begin() + 1; NI != NS.end(); ++NI)
     {
-        // |________________________| 被除数
-        //        |_________________| 除数
+        auto NP = *NI;
+        if (N1 == DH.second && NP.back() == DH.first) [[unlikely]]
+        {
+            *QI = BMASK;
+            MSUB(NP, D, *QI);
+            N1 = NP.back();
+        }
+        else
+        {
+            std::tie(*QI, N0, N1) =  __Atomic_TplDivDblRecip(
+                {*(NP.rbegin() + 1), NP.back(), N1}, DH, DenomReciprocal);
+            BlockType CY, CY1;
+            MSUB(NP, DR, *QI, &CY);
+
+            CY1 = N0 < CY ? 1 : 0;
+            N0 -= CY;
+            CY = N1 < CY1 ? 1 : 0;
+            N1 -= CY1;
+            *(NP.rbegin() + 1) = N0;
+
+            if (CY) [[unlikely]]
+            {
+                BlockType CYA;
+                ADD(NP.subspan(0, DN - 1), NP.subspan(0, DN - 1), D.subspan(0, DN - 1), 0, &CYA);
+                N1 += DH.second + CYA;
+                --(*QI);
+            }
+        }
+        ++QI;
     }
+    NS.back().back() = N1;
+    if (!RDX.empty())
+    {
+        SHR(RDX, RP.subspan(0, DN), Shift);
+    }
+}
+
+
+WideDenominator::WideDenominator(std::shared_ptr<Divider> DIVER) :
+    Mybase(DIVER->NumeratorOriginalView, DIVER->DenominatorOriginalView),
+    Base(DIVER) {}
+
+void WideDenominator::Init()
+{
+    // TODO
+}
+
+void WideDenominator::Run(BlockArrayView RAX, BlockArrayView RBX, BlockArrayView RDX)const
+{
+    // TODO
 }
 
 _DIVIDER_END
