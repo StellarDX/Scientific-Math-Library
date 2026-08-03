@@ -76,11 +76,11 @@
 
 #pragma once
 
-#include <memory>
 #ifndef __Dividers__
 #define __Dividers__
 
 #include <SciMath/StellarDX-GMP/SMLDefs.h>
+#include <memory>
 
 #define _DIVIDER_BEGIN namespace Dividers {
 #define _DIVIDER_END }
