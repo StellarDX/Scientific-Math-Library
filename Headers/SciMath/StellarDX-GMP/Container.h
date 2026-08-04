@@ -43,8 +43,21 @@
 
 #include <SciMath/StellarDX-GMP/SMLDefs.h>
 
-
 _80000_BEGIN
+
+/**
+ * @brief 分区元数据
+ */
+struct PartitionMetaData
+{
+    std::size_t StartIndex;  // 起始块位置
+    std::size_t StartOffset; // 块内偏移数
+};
+
+/**
+ * @brief 分区信息表（常量视图）
+ */
+using PartitionInfoConstView = std::span<const PartitionMetaData>;
 
 /**
  * @brief 存放数字的统一容器，用于将块序列表示为实际的数字
@@ -52,7 +65,54 @@ _80000_BEGIN
  */
 __interface NumericContainer
 {
+    /**
+     * @brief 获取原始数据块
+     * @details 此处原本想着用mdspan的，但mdspan的寻址方式是按块寻址而有些类型会精确到位
+     * @return BlockArrayView 原始数据块
+     */
+    virtual BlockArrayView GetRawData() = 0;
 
+    /**
+     * @brief 获取原始数据块（常量）
+     * @return BlockArrayConstView 原始数据块（常量）
+     */
+    virtual BlockArrayConstView GetRawData()const = 0;
+
+    /**
+     * @brief 获取原始数据块（常量）
+     * @return BlockArrayConstView 原始数据块（常量）
+     */
+    virtual BlockArrayConstView GetConstRawData()const = 0;
+
+    /**
+     * @brief 获取分区表
+     * @return PartitionInfoType 分区表（常量视图）
+     */
+    virtual PartitionInfoConstView GetPartitionInfo()const = 0;
+
+    /**
+     * @brief 获取总块数（因为BlockArray强制32位对齐）
+     * @return size_t 总块数
+     */
+    virtual size_t size()const = 0;
+
+    /**
+     * @brief 获取总字节数（依据分区表内容）
+     * @return size_t 字节数
+     */
+    virtual size_t size_byte()const = 0;
+
+    /**
+     * @brief 获取位数（依据分区表内容）
+     * @return size_t 位数
+     */
+    virtual size_t size_bit()const = 0;
+
+    /**
+     * @brief 转换为字符串
+     * @return std::string 字符串
+     */
+    virtual std::string ToString()const = 0;
 };
 
 _80000_END
