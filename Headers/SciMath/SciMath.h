@@ -39,5 +39,6 @@
 #include <SciMath/StellarDX-GMP/Multipliers.h>
 #include <SciMath/StellarDX-GMP/Dividers.h>
 #include <SciMath/StellarDX-GMP/Logics.h>
+#include <SciMath/StellarDX-GMP/Container.h>
 
 #endif

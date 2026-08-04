@@ -46,21 +46,33 @@
 _80000_BEGIN
 
 /**
- * @brief 分区元数据
+ * @brief 地址描述符
  */
-struct PartitionMetaData
+struct Address
 {
-    std::size_t StartIndex;  // 起始块位置
-    std::size_t StartOffset; // 起始块块内偏移数
-    std::size_t EndIndex;    // 结束块位置
-    std::size_t EndOffset;   // 结束块块内偏移数
-    std::string Type;        // 分区描述信息，几乎没什么卵用
+    std::size_t Index;  ///< 块位置
+    std::size_t Offset; ///< 块内偏移
 };
 
 /**
- * @brief 分区信息表（常量视图）
+ * @brief 分区信息表
  */
-using PartitionInfoConstView = std::span<const PartitionMetaData>;
+struct PartitionInfo
+{
+    Address     Begin;  ///< 起始位置
+    Address     End;    ///< 结束位置
+    std::string Type;   ///< 分区描述信息，几乎没什么卵用
+};
+
+using PartitionInfoConstView = std::span<const PartitionInfo>;
+
+/**
+ * @brief 元数据
+ */
+struct Metadata
+{
+
+};
 
 /**
  * @brief 存放数字的统一容器，用于将块序列表示为实际的数字
@@ -88,10 +100,10 @@ __interface NumericContainer
     virtual BlockArrayConstView GetConstRawData()const = 0;
 
     /**
-     * @brief 获取分区表
-     * @return PartitionInfoType 分区表（常量视图）
+     * @brief 获取元数据
+     * @return Metadata 元数据
      */
-    virtual PartitionInfoConstView GetPartitionInfo()const = 0;
+    virtual Metadata GetMetaData()const = 0;
 
     /**
      * @brief 获取总块数（因为BlockArray强制32位对齐）
