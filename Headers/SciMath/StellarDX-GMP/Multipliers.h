@@ -1,5 +1,5 @@
 /**
-    @file 整数乘法器的长征.h
+    @file Multipliers.h
     @defgroup Multipliers 乘法器
     @ingroup IPN
     @brief 一些无限精度乘法器
@@ -82,7 +82,7 @@
     </table>
 
     从表的内容可以看出，《算表》的定位是能够计算所有乘数<100且带有1/2的乘法。其中乘数<10的所有
-    乘法结果均可以在表格中直接查出，10<=乘数<100以及乘数带1/2的乘法可以通过特殊操作简介计算。
+    乘法结果均可以在表格中直接查出，10<=乘数<100以及乘数带1/2的乘法可以通过特殊操作快速计算。
     以计算12*35为例，先把两个乘数分解为十位和各位，也就是12写成10+2，35写成30+5，随后在表格中
     找到10和2对应的列，30和5对应的行，行列相交得到4个交点格，将交点格中的数全部加起来，就可以
     得到300+60+50+10=420，也就是式(10+2)*(30+5)展开后得到的结果。而对于一些带有1/2的乘法，也
@@ -166,6 +166,7 @@
 #define _MULTIPLIER_END }
 #define _MULTIPLIER Multipliers::
 
+_80000_BEGIN
 _ALU_BEGIN
 
 /**
@@ -372,7 +373,7 @@ class ToomCookMultiplier : public Multiplier
 
     @par 参考文献
     [1] Harvey, Hoeven V D .Integer multiplication in time O(n log n)[J].Annals of 
-        Mathematics, 2021, 193(2):563.DOI:10.4007/annals.2021.193.2.4.\
+        Mathematics, 2021, 193(2):563.DOI:10.4007/annals.2021.193.2.4.<br>
     [2] EntropyIncreaser. 整数乘法的长征.
         https://www.cnblogs.com/Elegia/p/18020040/integer-multiplication
  */
@@ -411,5 +412,6 @@ void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const SingleBl
 void MUL(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, const Multiplier* MULER = nullptr);
 
 _ALU_END
+_80000_END
 
 #endif

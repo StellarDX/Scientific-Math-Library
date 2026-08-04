@@ -47,6 +47,7 @@
 #define _SUBTRACTOR_END }
 #define _SUBTRACTOR Subtractors::
 
+_80000_BEGIN
 _ALU_BEGIN
 
 /**
@@ -119,5 +120,6 @@ _SUBTRACTOR_END
 void SUB(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockType CI = 0, SBlockType* CF = nullptr, const Subtractor* SUBER = nullptr);
 
 _ALU_END
+_80000_END
 
 #endif

@@ -36,7 +36,9 @@
 
 #include <ranges>
 #include "SciMath/StellarDX-GMP/Multipliers.h"
+#include "SciMath/StellarDX-GMP/SMLDefs.h"
 
+_80000_BEGIN
 _ALU_BEGIN
 
 void MADD(BlockArrayView DX, BlockArraySrcView AX, BlockType BX, BlockType* CF)
@@ -124,3 +126,4 @@ void MUL(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, const M
 }
 
 _ALU_END
+_80000_END

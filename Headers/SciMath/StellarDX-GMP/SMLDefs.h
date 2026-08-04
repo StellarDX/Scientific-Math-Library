@@ -1,5 +1,5 @@
 /**
- * @file GMPDefs.h
+ * @file SMLDefs.h
  * @author StellarDX Astronomy (1829934307@qq.com)
  * @defgroup IPN ALU
  * @brief 
@@ -71,6 +71,8 @@
 #define _END_EXTERN_C }
 #endif
 
+_80000_BEGIN
+
 using BlockType = uint32_t;
 using SBlockType = int32_t;
 using ExtBlockType = uint64_t;
@@ -89,5 +91,7 @@ inline constexpr void Panic(char const* argv)
 {
     throw ExceptType(argv);
 }
+
+_80000_END
 
 #endif

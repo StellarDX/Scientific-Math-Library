@@ -38,8 +38,8 @@
 
 #pragma once
 
-#ifndef __STEL_GMP_ADDERS__
-#define __STEL_GMP_ADDERS__
+#ifndef __Adders__
+#define __Adders__
 
 #include <SciMath/StellarDX-GMP/SMLDefs.h>
 
@@ -47,6 +47,7 @@
 #define _ADDER_END }
 #define _ADDER Adders::
 
+_80000_BEGIN
 _ALU_BEGIN
 
 /**
@@ -161,5 +162,6 @@ _ADDER_END
 void ADD(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockType CI = 0, BlockType* CF = nullptr, const Adder* ADDER = nullptr);
 
 _ALU_END
+_80000_END
 
 #endif

@@ -38,6 +38,7 @@
 #include "SciMath/StellarDX-GMP/Memory.h"
 #include "SciMath/StellarDX-GMP/Multipliers.h"
 #include "SciMath/StellarDX-GMP/Logics.h"
+#include "SciMath/StellarDX-GMP/SMLDefs.h"
 #include "SciMath/StellarDX-GMP/Subtractors.h"
 #include "SciMath/StellarDX-GMP/Adders.h"
 
@@ -46,6 +47,7 @@
 #include <iterator>
 #include <ranges>
 
+_80000_BEGIN
 _ALU_BEGIN
 
 Divider::Divider(BlockArraySrcView AX, BlockArraySrcView BX) : 
@@ -486,3 +488,4 @@ void DIV(BlockArrayView RAX, BlockArrayView RDX, BlockArraySrcView AX, BlockArra
 }
 
 _ALU_END
+_80000_END

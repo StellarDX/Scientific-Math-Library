@@ -44,6 +44,7 @@
 #include <compare>
 #include <SciMath/StellarDX-GMP/SMLDefs.h>
 
+_80000_BEGIN
 _ALU_BEGIN
 
 /**
@@ -99,5 +100,6 @@ bool TEST(BlockArraySrcView AX);
 void STOS(BlockArrayView AX);
 
 _ALU_END
+_80000_END
 
 #endif

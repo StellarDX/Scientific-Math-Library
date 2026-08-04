@@ -235,5 +235,9 @@ endfunction()
 if (SML_Documents)
     SetCacheVariable(SML_DoxyPath "" CACHE PATH
         "DOxygen安装目录，用于生成文档")
+    SetCacheVariable(SML_DoxyXtraStyleSheets "" CACHE STRING
+        "DOxygen自定义样式表")
+    SetCacheVariable(SML_DoxyXtraScripts "" CACHE STRING
+        "DOxygen额外输入文件")
     CompileDocuments()
 endif()

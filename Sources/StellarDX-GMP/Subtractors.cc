@@ -35,7 +35,9 @@
 */
 
 #include "SciMath/StellarDX-GMP/Subtractors.h"
+#include "SciMath/StellarDX-GMP/SMLDefs.h"
 
+_80000_BEGIN
 _ALU_BEGIN
 
 void DEC(BlockArrayView AX, BlockType BX, SBlockType* CF)
@@ -104,3 +106,4 @@ void SUB(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, SBlockT
 }
 
 _ALU_END
+_80000_END

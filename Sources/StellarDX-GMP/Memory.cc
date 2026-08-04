@@ -35,8 +35,10 @@
 */
 
 #include "SciMath/StellarDX-GMP/Memory.h"
+#include "SciMath/StellarDX-GMP/SMLDefs.h"
 #include <algorithm>
 
+_80000_BEGIN
 _ALU_BEGIN
 
 void MOV(BlockArrayView DST, BlockArraySrcView SRC, bool STD)
@@ -76,3 +78,4 @@ void STOS(BlockArrayView AX)
 }
 
 _ALU_END
+_80000_END

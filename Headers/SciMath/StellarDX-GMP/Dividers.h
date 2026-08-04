@@ -1,5 +1,5 @@
 /**
-    @file Divider.h
+    @file Dividers.h
     @defgroup Dividers 除法器
     @ingroup IPN
     @brief 一些无限精度除法器
@@ -120,6 +120,7 @@
 #define _DIVIDER_END }
 #define _DIVIDER Dividers::
 
+_80000_BEGIN
 _ALU_BEGIN
 
 /**
@@ -598,5 +599,6 @@ __declspec(deprecated("DIV2的功能DIV也能完成，请使用DIV")) void DIV2(
 void DIV(BlockArrayView RAX, BlockArrayView RDX, BlockArraySrcView AX, BlockArrayView BX, const Divider* DIVER = nullptr);
 
 _ALU_END
+_80000_END
 
 #endif

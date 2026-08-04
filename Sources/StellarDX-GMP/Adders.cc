@@ -35,6 +35,7 @@
 */
 
 #include "SciMath/StellarDX-GMP/Adders.h"
+#include "SciMath/StellarDX-GMP/SMLDefs.h"
 #if __GNUC__ >= 16
 #include <simd> // SIMD
 #else
@@ -43,6 +44,7 @@
 #include <stdexcept>
 #include <immintrin.h> // AVX-512
 
+_80000_BEGIN
 _ALU_BEGIN
 
 void INC(BlockArrayView AX, BlockType BX, BlockType* CF)
@@ -93,3 +95,4 @@ void ADD(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, BlockTy
 }
 
 _ALU_END
+_80000_END

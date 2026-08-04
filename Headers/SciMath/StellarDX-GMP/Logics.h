@@ -43,6 +43,7 @@
 
 #include <SciMath/StellarDX-GMP/SMLDefs.h>
 
+_80000_BEGIN
 _ALU_BEGIN
 
 /**
@@ -99,5 +100,6 @@ void SHL(BlockArrayView DST, BlockArraySrcView AX, std::size_t BX, BlockType* CF
 void SHR(BlockArrayView DST, BlockArraySrcView AX, std::size_t BX, BlockType* CF = nullptr);
 
 _ALU_END
+_80000_END
 
 #endif

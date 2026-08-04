@@ -36,10 +36,12 @@
 
 #include "SciMath/StellarDX-GMP/Logics.h"
 #include "SciMath/StellarDX-GMP/Memory.h"
+#include "SciMath/StellarDX-GMP/SMLDefs.h"
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
 
+_80000_BEGIN
 _ALU_BEGIN
 
 void AND(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)
@@ -140,3 +142,4 @@ void SHR(BlockArrayView DST, BlockArraySrcView AX, std::size_t BX, BlockType* CF
 }
 
 _ALU_END
+_80000_END
