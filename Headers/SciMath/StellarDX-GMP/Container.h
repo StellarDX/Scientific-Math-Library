@@ -51,7 +51,10 @@ _80000_BEGIN
 struct PartitionMetaData
 {
     std::size_t StartIndex;  // 起始块位置
-    std::size_t StartOffset; // 块内偏移数
+    std::size_t StartOffset; // 起始块块内偏移数
+    std::size_t EndIndex;    // 结束块位置
+    std::size_t EndOffset;   // 结束块块内偏移数
+    std::string Type;        // 分区描述信息，几乎没什么卵用
 };
 
 /**
