@@ -141,5 +141,16 @@ void SHR(BlockArrayView DST, BlockArraySrcView AX, std::size_t BX, BlockType* CF
     if (CF) {*CF = C;}
 }
 
+void NEG(BlockArrayView DST, BlockArraySrcView AX)
+{
+    auto AIT = std::find_if(AX.begin(), AX.end(), [](BlockType X){return X != 0;});
+    if (AIT == AX.end()) {return;}
+    auto ZL = std::distance(AX.begin(), AIT);
+    STOS(DST.subspan(0, ZL));
+    auto DI = DST.begin() + ZL;
+    *DI = -(*AIT);
+    NOT(DST.subspan(ZL + 1, AX.size() - (ZL + 1)), AX.subspan(ZL + 1, AX.size() - (ZL + 1)));
+}
+
 _ALU_END
 _80000_END

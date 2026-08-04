@@ -114,6 +114,8 @@
 #define __Dividers__
 
 #include <SciMath/StellarDX-GMP/SMLDefs.h>
+#include <SciMath/StellarDX-GMP/Adders.h>
+#include <SciMath/StellarDX-GMP/Subtractors.h>
 #include <memory>
 
 #define _DIVIDER_BEGIN namespace Dividers {
@@ -226,6 +228,11 @@ public:
     size_t SingleBlockDividerNormalizedThreshold = -1;
     /// @brief 单块除法器执行除数最高位不为1的除法时，被除数块数高于此值切换为倒数除法器
     size_t SingleBlockDividerUnnormalizedThreshold = -1;
+
+    /// @brief 内置加法器
+    Adder* InlineAdderPtr = nullptr;
+    /// @brief 内置减法器
+    Subtractor* InlineSubtractorPtr = nullptr;
 
 protected:
     /**

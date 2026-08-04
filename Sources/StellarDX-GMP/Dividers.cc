@@ -380,7 +380,7 @@ void LongReciprocalDivider::Run(BlockArrayView RAX, BlockArrayView RBX, BlockArr
     auto QH = CMP(RP.subspan(NN - DN, DN), D);
     if (QH == QH.greater)
     {
-        SUB(RP.subspan(NN - DN, DN), RP.subspan(NN - DN, DN), D);
+        SUB(RP.subspan(NN - DN, DN), RP.subspan(NN - DN, DN), D, 0, nullptr, InlineSubtractorPtr);
         *(RAX.begin() + (NN - DN)) = 1;
     }
     else {*(RAX.begin() + (NN - DN)) = 0;}
@@ -418,7 +418,7 @@ void LongReciprocalDivider::Run(BlockArrayView RAX, BlockArrayView RBX, BlockArr
             if (CY) [[unlikely]]
             {
                 BlockType CYA;
-                ADD(NP.subspan(0, DN - 1), NP.subspan(0, DN - 1), D.subspan(0, DN - 1), 0, &CYA);
+                ADD(NP.subspan(0, DN - 1), NP.subspan(0, DN - 1), D.subspan(0, DN - 1), 0, &CYA, InlineAdderPtr);
                 N1 += DH.second + CYA;
                 --(*QI);
             }

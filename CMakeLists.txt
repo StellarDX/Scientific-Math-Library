@@ -61,6 +61,14 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 project(ISO80000SML LANGUAGES CXX DESCRIPTION "ISO 80000-2 Scientific Math Library")
 
+set(COMPILE_FLAGS "")
+SetCacheVariable(SML_ClangForceInternalLib ON CACHE BOOL
+    "强制Clang编译器使用自带的libc++而不是系统的gcc，默认开启（如果使用Clang编译器推荐开启，要不然会乱环境）")
+
+if (SML_ClangForceInternalLib AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(COMPILE_FLAGS ${COMPILE_FLAGS} -stdlib=libc++)
+endif ()
+
 set(SMLVersion "26H2")
 
 set(CMAKE_C_STANDARD 23)
@@ -119,6 +127,8 @@ AddModuleLibrary(SciMath Sources/SciMath.ixx FALLBACK
     ${SML_SourceFiles} ${SML_HeaderFiles}
     IF BuildAsModule)
 add_library(SciMath::ISO80000SML ALIAS SciMath)
+
+target_compile_options(SciMath PRIVATE ${COMPILE_FLAGS})
 
 # 添加头文件
 

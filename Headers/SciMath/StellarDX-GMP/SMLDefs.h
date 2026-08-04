@@ -92,6 +92,8 @@ inline constexpr void Panic(char const* argv)
     throw ExceptType(argv);
 }
 
+static const auto NullPtrDefOutput = "None";
+
 _80000_END
 
 #endif

@@ -99,6 +99,14 @@ void SHL(BlockArrayView DST, BlockArraySrcView AX, std::size_t BX, BlockType* CF
  */
 void SHR(BlockArrayView DST, BlockArraySrcView AX, std::size_t BX, BlockType* CF = nullptr);
 
+/**
+ * @brief 补码
+ * @ingroup Logics
+ * @param DST 结果
+ * @param AX 操作数1
+ */
+void NEG(BlockArrayView DST, BlockArraySrcView AX);
+
 _ALU_END
 _80000_END
 
