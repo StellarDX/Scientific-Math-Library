@@ -1,37 +1,40 @@
 /**
- * @file IO.h
- * @defgroup IO 输入输出
+ * @file Memory.h
+ * @defgroup Memory 输入输出
  * @ingroup IPN
  * @author StellarDX Astronomy (1829934307@qq.com)
  * @brief ByteArray和一些基本指令，是无限精度整数/无限精度浮点/无限精度十进制浮点的基础
  * @version 26H2
  * @date 2026-06-20
- * 
- * @copyright Copyright (c) 2026 StellarDX Astronomy
- * Scientific Math Library is free software; you can redistribute it and/or 
- * modify it under the terms of either:
- * 
- *   * the GNU Lesser General Public License as published by the Free
- *     Software Foundation; either version 3 of the License, or (at your
- *     option) any later version.
- * 
- * or
- * 
- *   * the GNU General Public License as published by the Free Software
- *     Foundation; either version 2 of the License, or (at your option) any
- *     later version.
- * 
- * or both in parallel, as here.
- * 
- * Scientific Math Library is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- * 
- * You should have received copies of the GNU General Public License and the
- * GNU Lesser General Public License along with the Scientific Math Library.
- * If not, see https://www.gnu.org/licenses/.
  */
+
+/*
+    Copyright (c) 2026 StellarDX Astronomy
+
+    Scientific Math Library is free software; you can redistribute it and/or 
+    modify it under the terms of either:
+
+      * the GNU Lesser General Public License as published by the Free
+        Software Foundation; either version 3 of the License, or (at your
+        option) any later version.
+
+    or
+
+      * the GNU General Public License as published by the Free Software
+        Foundation; either version 2 of the License, or (at your option) any
+        later version.
+
+    or both in parallel, as here.
+
+    Scientific Math Library is distributed in the hope that it will be useful, 
+    but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received copies of the GNU General Public License and the
+    GNU Lesser General Public License along with the Scientific Math Library.
+    If not, see https://www.gnu.org/licenses/.
+*/
 
 #pragma once
 
@@ -45,7 +48,7 @@ _ALU_BEGIN
 
 /**
  * @brief 将源块数组数据复制到目标块数组
- * @ingroup IO
+ * @ingroup Memory
  *
  * @param DST 目标块数组视图
  * @param SRC 源块数组只读视图
@@ -57,7 +60,7 @@ void MOV(BlockArrayView DST, BlockArraySrcView SRC, bool STD = 0);
 
 /**
  * @brief 按大端语义比较两个块数组的数值大小
- * @ingroup IO
+ * @ingroup Memory
  *
  * 先比较有效长度（BSR），长度不同则较长者更大；
  * 长度相同时从最高有效块向最低有效块逐块比较。
@@ -70,7 +73,7 @@ std::strong_ordering CMP(BlockArraySrcView AX, BlockArraySrcView BX);
 
 /**
  * @brief 获取块数组有效长度（Bit Scan Reverse 语义）
- * @ingroup IO
+ * @ingroup Memory
  *
  * @param AX 块数组只读视图
  * @return size_t 有效长度；若所有块均为零则返回 0
@@ -79,7 +82,7 @@ size_t BSR(BlockArraySrcView AX);
 
 /**
  * @brief 检测块数组是否全部为零
- * @ingroup IO
+ * @ingroup Memory
  *
  * @param ax 块数组只读视图
  * @return true  所有块均为零
@@ -89,7 +92,7 @@ bool TEST(BlockArraySrcView AX);
 
 /**
  * @brief 将块数组所有元素置零
- * @ingroup IO
+ * @ingroup Memory
  *
  * @param ax 目标块数组视图
  */

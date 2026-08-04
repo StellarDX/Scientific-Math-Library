@@ -2,7 +2,7 @@
     @file Divider.h
     @defgroup Dividers 除法器
     @ingroup IPN
-
+    @brief 一些无限精度除法器
     @details
     丹霞：除法运算一直以来几乎都是以竖式除法为主，虽然现在也有分治除法器和牛顿迭代除法器，GMP
     内置的也就只有这几种除法器了。但是这些优化方案实际上优化效果不是特别明显，因为除法本质上是
@@ -78,7 +78,35 @@
         Evaluation of a New Variable Latency Integer Division Scheme[J/OL]. IEEE 
         Transactions on Computers, 2024, 73(7): 1767-1779. 
         DOI:10.1109/TC.2024.3386060.
- */
+*/
+
+/*
+    Copyright (c) 2026 StellarDX Astronomy
+
+    Scientific Math Library is free software; you can redistribute it and/or 
+    modify it under the terms of either:
+
+      * the GNU Lesser General Public License as published by the Free
+        Software Foundation; either version 3 of the License, or (at your
+        option) any later version.
+
+    or
+
+      * the GNU General Public License as published by the Free Software
+        Foundation; either version 2 of the License, or (at your option) any
+        later version.
+
+    or both in parallel, as here.
+
+    Scientific Math Library is distributed in the hope that it will be useful, 
+    but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received copies of the GNU General Public License and the
+    GNU Lesser General Public License along with the Scientific Math Library.
+    If not, see https://www.gnu.org/licenses/.
+*/
 
 #pragma once
 

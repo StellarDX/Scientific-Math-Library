@@ -2,7 +2,7 @@
     @file 整数乘法器的长征.h
     @defgroup Multipliers 乘法器
     @ingroup IPN
-
+    @brief 一些无限精度乘法器
     @details 早在几千年前，商朝人就开始用十进制计数，四则运算也就应运而生。但那时的数学刚刚成
     型，没有形成系统性的口诀。西周时期，第一本数学著作《周髀算经》出现标志着当时的数学已经得到
     了巨大的进步。其中有一段记载是这样的：
@@ -125,6 +125,34 @@
         DOI:CNKI:SUN:JSDX.0.2006-01-007.<br>
     [3]	Granlund T, The GMP development team. GNU MP: The GNU Multiple 
         Precision Arithmetic Library[C]. 5.0.5. 2012.
+*/
+
+/*
+    Copyright (c) 2026 StellarDX Astronomy
+
+    Scientific Math Library is free software; you can redistribute it and/or 
+    modify it under the terms of either:
+
+      * the GNU Lesser General Public License as published by the Free
+        Software Foundation; either version 3 of the License, or (at your
+        option) any later version.
+
+    or
+
+      * the GNU General Public License as published by the Free Software
+        Foundation; either version 2 of the License, or (at your option) any
+        later version.
+
+    or both in parallel, as here.
+
+    Scientific Math Library is distributed in the hope that it will be useful, 
+    but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received copies of the GNU General Public License and the
+    GNU Lesser General Public License along with the Scientific Math Library.
+    If not, see https://www.gnu.org/licenses/.
 */
 
 #pragma once
