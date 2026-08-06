@@ -37,7 +37,6 @@
 
 #pragma once
 
-#include <stdexcept>
 #ifndef __INTEGER__
 #define __INTEGER__
 
