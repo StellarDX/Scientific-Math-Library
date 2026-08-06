@@ -65,9 +65,15 @@ set(COMPILE_FLAGS "")
 SetCacheVariable(SML_ClangForceInternalLib ON CACHE BOOL
     "强制Clang编译器使用自带的libc++而不是系统的gcc，默认开启（如果使用Clang编译器推荐开启，要不然会乱环境）")
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(COMPILE_FLAGS ${COMPILE_FLAGS} -freflection)
+endif ()
+
 if (SML_ClangForceInternalLib AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(COMPILE_FLAGS ${COMPILE_FLAGS} -stdlib=libc++)
 endif ()
+
+message(STATUS "Compile flags: ${COMPILE_FLAGS}")
 
 set(SMLVersion "26H2")
 

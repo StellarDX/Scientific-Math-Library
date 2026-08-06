@@ -76,7 +76,8 @@ _80000_BEGIN
 using BlockType = uint32_t;
 using SBlockType = int32_t;
 using ExtBlockType = uint64_t;
-inline static const auto BSIZE = sizeof(BlockType) * 8;
+inline static const auto BBYTE = sizeof(BlockType);
+inline static const auto BSIZE = BBYTE * 8;
 inline static const auto BMASK = ~BlockType(0);
 inline static const auto BHBIT = BMASK ^ (BMASK >> 1);
 

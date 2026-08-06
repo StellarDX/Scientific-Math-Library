@@ -2605,7 +2605,10 @@ PREDEFINED             = "__interface=struct" \
                          "_MULTIPLIER=Multipliers::" \
                          "_DIVIDER_BEGIN=namespace Dividers {" \
                          "_DIVIDER_END=}" \
-                         "_DIVIDER=Dividers::"
+                         "_DIVIDER=Dividers::"\
+                         "_CONTAINER_BEGIN=namespace Containers {"\
+                         "_CONTAINER_END=}"\
+                         "_CONTAINER=Containers::"
 
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this

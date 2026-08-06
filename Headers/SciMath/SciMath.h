@@ -41,4 +41,7 @@
 #include <SciMath/StellarDX-GMP/Logics.h>
 #include <SciMath/StellarDX-GMP/Container.h>
 
+// 整数
+#include <SciMath/InftyInteger/Integer.h>
+
 #endif
