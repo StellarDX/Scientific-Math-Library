@@ -38,6 +38,7 @@
 
 #pragma once
 
+#include <cstddef>
 #ifndef __CONTAINER__
 #define __CONTAINER__
 
@@ -97,6 +98,7 @@ struct MetadataType
 {
     std::string    TypeName;       ///< 类型名
     std::string    Format;         ///< 存储格式名
+    bool           IsExternal;     ///< 是否直接存储数据
     bool           IsDynamicSized; ///< 是否可扩缩容
     bool           IsSigned;       ///< 是否为有符号类型
     PartitionTable Partitions;     ///< 分区表
@@ -134,7 +136,7 @@ __interface NumericContainer
      * @details 返回描述当前容器结构的元数据副本。
      * @return Metadata 元数据
      */
-    virtual MetadataType GetMetaData()const = 0;
+    virtual MetadataType GetMetadata()const = 0;
 
     /**
      * @brief 获取总块数（因为BlockArray强制32位对齐）
@@ -185,6 +187,58 @@ template<typename Tp>
 inline consteval size_t BlocksAsneeded()
 {
     return sizeof(Tp) / BBYTE + (sizeof(Tp) % BBYTE ? 1 : 0);
+}
+
+/**
+ * @brief 分配大小单位
+ * @ingroup Container
+ */
+enum AllocSizeUnit
+{
+    AllocBlock, ///< 块
+    AllocByte,  ///< 字节
+    AllocBit    ///< 位
+};
+
+/**
+ * @brief 基础块分配辅助函数
+ * @ingroup Container
+ * @details 根据指定的大小和单位，分配容量并生成分区信息。（事实上它只是根据指定大小生成了一个分区信息，没有真的分配块，问就是有些存储类型不支持动态分配）
+ * @tparam ContainerType 目标容器
+ * @param[in] Size 请求分配的大小
+ * @param[in] Unit 大小的单位，默认为块
+ * @return PartitionInfo 描述新分配区域的分区信息
+ * @note Size为0时，它确实分配了0个块，分配的结果就是Dst的容量为0但分区表写入了内容，一个大小为0的分区。 exp(💧*ln(😄))<br>
+ *       从OS的层面来看，这样子也被定义为分配成功，因此，这很河里（雾<br>
+ *       但这样即使完成了分配，C艹也不会允许你直接操作一个大小为0的分区（x<br>
+ *       PS：C语言的语境中malloc(x if x < 0)也非常河里，产生的结果看凉心编译器（奇怪的行为
+ */
+inline PartitionInfo __Balloc(std::size_t Size, AllocSizeUnit Unit = AllocBlock)
+{
+    if (!Size)
+    {
+        return {{0, 0}, {0, 0}};
+    }
+    PartitionInfo Info;
+    Info.Begin = {0, 0};
+    switch (Unit)
+    {
+    case AllocBlock:
+        Info.End = {Size - 1, BSIZE - 1};
+        break;
+    case AllocByte:
+        Info.End = {Size / BBYTE, (Size % BBYTE) * 8 - 1};
+        break;
+    case AllocBit:
+        Info.End = {Size / BSIZE, (Size % BSIZE) - 1};
+        break;
+    }
+    if (Info.End.Offset >= BSIZE)
+    {
+        --Info.End.BlockSize;
+        Info.End.Offset = BSIZE - 1;
+    }
+    return Info;
 }
 
 _CONTAINER_END

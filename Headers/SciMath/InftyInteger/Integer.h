@@ -37,6 +37,7 @@
 
 #pragma once
 
+#include <stdexcept>
 #ifndef __INTEGER__
 #define __INTEGER__
 
@@ -46,7 +47,7 @@
 #include <memory>
 #include <format>
 #include <charconv>
-#include <string_view>
+#include <meta>
 
 _80000_BEGIN
 _CONTAINER_BEGIN
@@ -128,11 +129,10 @@ public:
     {
         Metadata.TypeName = "BasicInteger";
         Metadata.Format = this->NType;
+        Metadata.IsExternal = 0;
         Metadata.IsDynamicSized = 0;
         Metadata.IsSigned = std::is_signed_v<ValueType>;
-        std::size_t BlockSz = BlkArrSize - 1;
-        std::size_t Offset = (sizeof(ValueType) * 8 - 1) % BSIZE;
-        Metadata.Partitions = {{{0, 0}, {BlockSz, Offset}, "WholeStorage"}};
+        Metadata.Partitions = {__Balloc(sizeof(ValueType), AllocByte)};
     }
 
     /**
@@ -150,33 +150,53 @@ public:
      * @param StrInput 输入字符串，支持"0b"(二进制)，"0"(八进制)和"0x"(十六进制)前缀
      * @details 自动检测前缀并解析数值
      */
-    BasicIntegerContainer(std::string_view StrInput) 
+    BasicIntegerContainer(std::string StrInput) 
         : BasicIntegerContainer()
     {
+        if (StrInput.empty())
+        {
+            _Data.RawData = 0;
+            return;
+        }
+
+        std::size_t StartPos = 0;
         int Base = 10;
-        auto First = StrInput.begin();
-        if (StrInput.substr(0, 2) == "0x")
+
+        if (StrInput.front() == '+' || StrInput.front() == '-') {StartPos = 1;}
+
+        if (StrInput.substr(StartPos, 2) == "0x")
         {
             Base = 16;
-            First += 2;
+            StrInput.erase(StartPos, 2);
         }
-        else if (StrInput.substr(0, 2) == "0b")
+        else if (StrInput.substr(StartPos, 2) == "0b")
         {
             Base = 2;
-            First += 2;
+            StrInput.erase(StartPos, 2);
         }
-        else if (StrInput.size() >= 2 && StrInput.front() == '0')
+        else if (StrInput.size() >= 2 && StrInput.at(StartPos) == '0')
         {
             Base = 8;
-            First += 1;
+            StrInput.erase(StartPos, 1);
         }
-        std::from_chars(First, StrInput.end(), _Data.RawData, Base);
+        
+        if (!StrInput.empty())
+        {
+            auto Result = std::from_chars(
+                StrInput.c_str(), StrInput.c_str() + StrInput.size(), 
+                _Data.RawData, Base);
+            if (Result.ec != std::errc())
+            {
+                Panic("无效的整数字符串");
+            }
+        }
+        else {Panic("无效的整数字符串");}
     }
 
     BlockArrayView GetRawData()override{return _Data.Blocks;}
     BlockArrayConstView GetRawData()const override{return _Data.Blocks;}
     BlockArrayConstView GetConstRawData()const override{return _Data.Blocks;}
-    MetadataType GetMetaData()const override{return Metadata;}
+    MetadataType GetMetadata()const override{return Metadata;}
     constexpr size_t size()const override{return BlkArrSize;}
     constexpr size_t size_byte()const override{return sizeof(ValueType);}
     constexpr size_t size_bit()const override{return size_byte() * 8;}
@@ -188,41 +208,142 @@ public:
      */
     std::string ToString(ToStringBase Base)const
     {
-        std::size_t BufSize = std::size_t(double(size_bit()) * 0.30103 + 2.);
+        std::size_t BufSize = std::size_t(size_bit() + 10);
         std::shared_ptr<char[]> Buffer(new char[BufSize]);
-        std::to_chars(Buffer.get(), Buffer.get() + BufSize, _Data.RawData, int(Base));
+        auto [Ptr, Err] = std::to_chars(Buffer.get(), Buffer.get() + BufSize, _Data.RawData, int(Base));
+        *Ptr = '\0';
         std::string Result{Buffer.get()};
+        std::size_t InsertPrefixPos = 0;
+        if (Result.front() == '-') {InsertPrefixPos = 1;}
+
         switch (Base)
         {
         case IntegerContainer::StrBinary:
-            return "0b" + Result;
+            Result.insert(1, "0b");
+            break;
         case IntegerContainer::StrOctal:
-            return "0" + Result;
+            Result.insert(1, "0");
+            break;
         case IntegerContainer::StrDecimal:
             return Result;
+            break;
         case IntegerContainer::StrHexadecimal:
             std::transform(Result.begin(), Result.end(), Result.begin(),
                 [](char c){return toupper(c);});
-            return "0x" + Result;
+            Result.insert(1, "0x");
+            break;
         }
+
+        return Result;
     }
 
     std::string ToString()const override {return ToString(StrDecimal);}
 };
 
+template<typename ContainerType>
+concept IsDynamicContainer = requires(ContainerType Container, std::size_t Size)
+{
+    {Container.resize(Size)} -> std::same_as<void>;
+};
+
+/**
+ * @brief 无限长度整数容器
+ * @ingroup IPZ
+ * @tparam ContainerType 底层存储容器，需要满足存储用的容器是连续内存块
+ * @details 支持动态大小的整数存储，适用于大数运算。
+ */
 template<std::ranges::contiguous_range ContainerType>
 class InftyIntegerContainer : public IntegerContainer
 {
 public:
-    // TODO
-    // virtual BlockArrayView GetRawData() = 0;
-    // virtual BlockArrayConstView GetRawData()const = 0;
-    // virtual BlockArrayConstView GetConstRawData()const = 0;
-    // virtual Metadata GetMetaData()const = 0;
-    // virtual size_t size()const = 0;
-    // virtual size_t size_byte()const = 0;
-    // virtual size_t size_bit()const = 0;
-    // virtual std::string ToString()const = 0;
+    using Mybase    = IntegerContainer;
+    using ValueType = ContainerType;
+
+protected:
+    ValueType _Data; ///< 动态数据存储
+
+    void _Resize(std::size_t Partition, PartitionSizeType Size)
+    {
+        Panic<std::runtime_error>(
+            std::format("InftyIntegerContainer: 当前存储类型为{}，此类型不支持扩/缩容",
+            std::meta::display_string_of(^^ContainerType)).c_str());
+    }
+
+public:
+    /**
+     * @brief 默认构造函数
+     * @param Value 初始值容器
+     * @param Signed 是否为有符号数
+     */
+    InftyIntegerContainer(const ValueType& Value = ValueType(), bool Signed = 1)
+    {
+        Metadata.TypeName = "InftyInteger";
+        Metadata.Format = this->NType;
+        Metadata.IsExternal = 
+            std::bool_constant<std::ranges::view<ContainerType>>::value;
+        Metadata.IsDynamicSized = 
+            std::bool_constant<IsDynamicContainer<ContainerType>>::value;
+        Metadata.IsSigned = Signed;
+        Metadata.Partitions = {__Balloc(std::size(Value), AllocBlock)};
+    }
+
+    /**
+     * @brief 构造指定大小的容器
+     * @param AllocSize 分配大小
+     * @param Unit 分配单位
+     * @param Signed 是否为有符号数
+     * @note ContainerType必须支持resize时才能使用
+     */
+    InftyIntegerContainer(std::size_t AllocSize, AllocSizeUnit Unit = AllocBlock, bool Signed = 1)
+        requires IsDynamicContainer<ContainerType>
+    {
+        Metadata.TypeName = "InftyInteger";
+        Metadata.Format = this->NType;
+        Metadata.IsExternal = 0;
+        Metadata.IsDynamicSized = 1;
+        Metadata.IsSigned = Signed;
+        auto Part = __Balloc(AllocSize, Unit);
+        Metadata.Partitions = {Part};
+        _Data.resize(Part.End.BlockSize + 1);
+    }
+
+    /**
+     * @brief 从字符串构造
+     * @param InputStr 输入字符串
+     * @todo 实现大数字符串解析逻辑
+     */
+    InftyIntegerContainer(std::string InputStr)
+    {
+        // TODO
+    }
+    
+    BlockArrayView GetRawData()override{return _Data;}
+    BlockArrayConstView GetRawData()const override{return _Data;}
+    BlockArrayConstView GetConstRawData()const override{return _Data;}
+    MetadataType GetMetadata()const override{return Metadata;}
+    size_t size()const override{return std::size(_Data);}
+    size_t size_byte()const override
+    {
+        auto EndPoint = Metadata.Partitions.back().End;
+        EndPoint.Offset += 1;
+        return (EndPoint.BlockSize * BBYTE) + (EndPoint.Offset / 8) + 
+            (EndPoint.Offset % 8 ? 1 : 0);
+    }
+    size_t size_bit()const override
+    {
+        auto EndPoint = Metadata.Partitions.back().End;
+        return EndPoint.BlockSize * BSIZE + EndPoint.Offset + 1;
+    }
+
+    void Adjust(std::size_t Partition, PartitionSizeType Size)override
+    {
+        _Resize(Partition, Size);
+    }
+
+    std::string ToString()const override
+    {
+        return std::string(); // 占位符，TODO
+    }
 };
 
 _CONTAINER_END
