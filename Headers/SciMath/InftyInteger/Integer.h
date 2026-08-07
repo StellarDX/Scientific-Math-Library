@@ -84,7 +84,7 @@ public:
      * @param Size 新的大小
      * @throws std::runtime_error 总是抛出异常，因为基本整数容器不支持此操作
      */
-    void Adjust(std::size_t Partition, PartitionSizeType Size)
+    void Adjust(std::size_t Partition, size_t Size, AllocSizeUnit Unit)override
     {
         Panic<std::runtime_error>("BasicIntegerContainer：此类型不支持扩/缩容");
     }
@@ -200,6 +200,20 @@ public:
     constexpr size_t size_byte()const override{return sizeof(ValueType);}
     constexpr size_t size_bit()const override{return size_byte() * 8;}
 
+    void Write(BlockArrayConstView NewData)override
+    {
+        if (NewData.size() < BlkArrSize)
+        {
+            ALU::MOV(_Data.Blocks, NewData);
+        }
+        else {ALU::MOV(_Data.Blocks, NewData.subspan(0, BlkArrSize));}
+        std::size_t EffectiveEnd = Metadata.Partitions.front().End.Offset + 1;
+        if (EffectiveEnd < BSIZE) 
+        {
+            _Data.Blocks[BlkArrSize - 1] &= ((1 << EffectiveEnd) - 1);
+        }
+    }
+
     /**
      * @brief 转换为指定进制的字符串
      * @param Base 目标进制
@@ -239,12 +253,6 @@ public:
     std::string ToString()const override {return ToString(StrDecimal);}
 };
 
-template<typename ContainerType>
-concept IsDynamicContainer = requires(ContainerType Container, std::size_t Size)
-{
-    {Container.resize(Size)} -> std::same_as<void>;
-};
-
 /**
  * @brief 无限长度整数容器
  * @ingroup IPZ
@@ -261,20 +269,21 @@ public:
 protected:
     ValueType _Data; ///< 动态数据存储
 
-    void _Resize(std::size_t Partition, PartitionSizeType Size)
+    void _Resize(std::size_t Partition, size_t Size, AllocSizeUnit Unit)
     {
         Panic<std::runtime_error>(
             std::format("InftyIntegerContainer: 当前存储类型为{}，此类型不支持扩/缩容",
             std::meta::display_string_of(^^ContainerType)).c_str());
     }
 
+    void _Resize(std::size_t Partition, size_t Size, AllocSizeUnit Unit)
+        requires IsDynamicContainer<ContainerType>
+    {
+        Metadata.Partitions.front() = __Bmalloc(&_Data, Size, Unit);
+    }
+
 public:
-    /**
-     * @brief 默认构造函数
-     * @param Value 初始值容器
-     * @param Signed 是否为有符号数
-     */
-    InftyIntegerContainer(const ValueType& Value = ValueType(), bool Signed = 1)
+    InftyIntegerContainer(bool Signed)
     {
         Metadata.TypeName = "InftyInteger";
         Metadata.Format = this->NType;
@@ -283,7 +292,25 @@ public:
         Metadata.IsDynamicSized = 
             std::bool_constant<IsDynamicContainer<ContainerType>>::value;
         Metadata.IsSigned = Signed;
+    }
+
+    /**
+     * @brief 默认构造函数
+     * @param Value 初始值容器
+     * @param Signed 是否为有符号数
+     */
+    InftyIntegerContainer(const ValueType& Value = ValueType(), bool Signed = 1)
+        : InftyIntegerContainer(Signed)
+    {
         Metadata.Partitions = {__Balloc(std::size(Value), AllocBlock)};
+        std::copy(std::begin(Value), std::end(Value), _Data.begin());
+    }
+
+    InftyIntegerContainer(const ValueType& Value = ValueType(), bool Signed = 1)
+        requires IsDynamicContainer<ContainerType> : InftyIntegerContainer(Signed)
+    {
+        Metadata.Partitions = {__Balloc(std::size(Value), AllocBlock)};
+        _Data = Value;
     }
 
     /**
@@ -294,16 +321,9 @@ public:
      * @note ContainerType必须支持resize时才能使用
      */
     InftyIntegerContainer(std::size_t AllocSize, AllocSizeUnit Unit = AllocBlock, bool Signed = 1)
-        requires IsDynamicContainer<ContainerType>
+        requires IsDynamicContainer<ContainerType> : InftyIntegerContainer(Signed)
     {
-        Metadata.TypeName = "InftyInteger";
-        Metadata.Format = this->NType;
-        Metadata.IsExternal = 0;
-        Metadata.IsDynamicSized = 1;
-        Metadata.IsSigned = Signed;
-        auto Part = __Balloc(AllocSize, Unit);
-        Metadata.Partitions = {Part};
-        _Data.resize(Part.End.BlockSize + 1);
+        Metadata.Partitions = {__Bmalloc(&_Data, AllocSize, Unit)};
     }
 
     /**
@@ -325,18 +345,32 @@ public:
     {
         auto EndPoint = Metadata.Partitions.back().End;
         EndPoint.Offset += 1;
-        return (EndPoint.BlockSize * BBYTE) + (EndPoint.Offset / 8) + 
+        return (EndPoint.BlockIndex * BBYTE) + (EndPoint.Offset / 8) + 
             (EndPoint.Offset % 8 ? 1 : 0);
     }
     size_t size_bit()const override
     {
         auto EndPoint = Metadata.Partitions.back().End;
-        return EndPoint.BlockSize * BSIZE + EndPoint.Offset + 1;
+        return EndPoint.BlockIndex * BSIZE + EndPoint.Offset + 1;
     }
 
-    void Adjust(std::size_t Partition, PartitionSizeType Size)override
+    void Adjust(std::size_t Partition, size_t Size, AllocSizeUnit Unit)override
     {
-        _Resize(Partition, Size);
+        _Resize(Partition, Size, Unit);
+    }
+
+    void Write(BlockArrayConstView NewData)override
+    {
+        if (NewData.size() < std::size(_Data))
+        {
+            ALU::MOV(_Data, NewData);
+        }
+        else {ALU::MOV(_Data, NewData.subspan(0, std::size(_Data)));}
+        std::size_t EffectiveEnd = Metadata.Partitions.front().End.Offset + 1;
+        if (EffectiveEnd < BSIZE) 
+        {
+            _Data[std::size(_Data) - 1] &= ((1 << EffectiveEnd) - 1);
+        }
     }
 
     std::string ToString()const override

@@ -38,12 +38,14 @@
 
 #pragma once
 
-#include <cstddef>
 #ifndef __CONTAINER__
 #define __CONTAINER__
 
 #include <SciMath/StellarDX-GMP/SMLDefs.h>
 #include <meta>
+#include <compare>
+#include <cstddef>
+#include <limits>
 
 #define _CONTAINER_BEGIN namespace Containers {
 #define _CONTAINER_END }
@@ -53,15 +55,126 @@ _80000_BEGIN
 _CONTAINER_BEGIN
 
 /**
+ * @brief 动态容器概念约束
+ * @details 要求容器类型支持resize操作且返回void。
+ * @tparam ContainerType 容器类型
+ */
+template<typename ContainerType>
+concept IsDynamicContainer = requires(ContainerType Container, std::size_t Size)
+{
+    {Container.resize(Size)} -> std::same_as<void>;
+};
+
+/**
+ * @brief 分配大小单位
+ * @ingroup Container
+ */
+enum AllocSizeUnit
+{
+    AllocBlock, ///< 块
+    AllocByte,  ///< 字节
+    AllocBit    ///< 位
+};
+
+/**
  * @brief 地址描述符
  * @details 用于精确定位数据块中的具体位置，支持块索引和块内偏移。
  * @ingroup Container
  */
-typedef struct Address
+struct Address
 {
-    std::size_t BlockSize; ///< 块索引/整块大小
+    std::size_t BlockIndex; ///< 块索引/整块大小
     std::size_t Offset;    ///< 块内偏移/不足整块的部分
-}PartitionSizeType;
+};
+
+static const Address __Addr_Begin = {0, 0}; ///< 地址的最小位置，也是正向寻址的开始位置
+static const Address __Addr_REnd = 
+{
+    std::numeric_limits<std::size_t>::max(),
+    BSIZE - 1
+}; ///< 地址的最大位置，也是反向寻址的结束位置
+
+/**
+ * @brief 正向寻址
+ * @param Pos 起始地址
+ * @param Offset 偏移量
+ * @param Unit 偏移量的单位
+ * @return 计算后的新地址
+ */
+inline constexpr Address __Addr_Seek(Address Pos, std::size_t Offset, AllocSizeUnit Unit = AllocBlock)
+{
+    switch (Unit)
+    {
+    case AllocBlock:
+        Pos.BlockIndex += Offset;
+        Offset = 0;
+        break;
+    case AllocByte:
+        Pos.BlockIndex += Offset / BBYTE;
+        Offset = (Offset % BBYTE) * 8;
+        break;
+    case AllocBit:
+        Pos.BlockIndex += Offset / BSIZE;
+        Offset %= BSIZE;
+        break;
+    }
+
+    Pos.Offset += Offset;
+    if (Pos.Offset >= BSIZE)
+    {
+        Pos.Offset -= BSIZE;
+        ++Pos.BlockIndex;
+    }
+
+    return Pos;
+}
+
+/**
+ * @brief 反向寻址
+ * @param Pos 起始地址
+ * @param Offset 偏移量
+ * @param Unit 偏移量的单位
+ * @return 计算后的新地址
+ */
+inline constexpr Address __Addr_Seek_Reverse(Address Pos, std::size_t Offset, AllocSizeUnit Unit = AllocBlock)
+{
+    switch (Unit)
+    {
+    case AllocBlock:
+        Pos.BlockIndex -= Offset;
+        Offset = 0;
+        break;
+    case AllocByte:
+        Pos.BlockIndex -= Offset / BBYTE;
+        Offset = (Offset % BBYTE) * 8;
+        break;
+    case AllocBit:
+        Pos.BlockIndex -= Offset / BSIZE;
+        Offset %= BSIZE;
+        break;
+    }
+
+    Pos.Offset -= Offset;
+    if (Pos.Offset >= BSIZE)
+    {
+        Pos.Offset += BSIZE;
+        --Pos.BlockIndex;
+    }
+
+    return Pos;
+}
+
+/**
+ * @brief 地址比较
+ * @param A 地址 A
+ * @param B 地址 B
+ * @return 比较结果
+ */
+inline constexpr std::strong_ordering __Addr_Compare(Address A, Address B)
+{
+    if (A.BlockIndex != B.BlockIndex) {return A.BlockIndex <=> B.BlockIndex;}
+    return A.Offset <=> B.Offset;
+}
 
 /**
  * @brief 分区信息表
@@ -132,6 +245,12 @@ __interface NumericContainer
     virtual BlockArrayConstView GetConstRawData()const = 0;
 
     /**
+     * @brief 写入新的值
+     * @param NewData 新的值
+     */
+    virtual void Write(BlockArrayConstView NewData) = 0;
+
+    /**
      * @brief 获取元数据
      * @details 返回描述当前容器结构的元数据副本。
      * @return Metadata 元数据
@@ -166,7 +285,7 @@ __interface NumericContainer
      * @param[in] Size 目标大小
      * @note 如果容器不支持动态大小调整，调用此方法可能会抛出异常或未定义行为。
      */
-    virtual void Adjust(std::size_t Partition, PartitionSizeType Size) = 0;
+    virtual void Adjust(std::size_t Partition, size_t Size, AllocSizeUnit Unit = AllocBlock) = 0;
 
     /**
      * @brief 转换为字符串
@@ -190,55 +309,57 @@ inline consteval size_t BlocksAsneeded()
 }
 
 /**
- * @brief 分配大小单位
- * @ingroup Container
- */
-enum AllocSizeUnit
-{
-    AllocBlock, ///< 块
-    AllocByte,  ///< 字节
-    AllocBit    ///< 位
-};
-
-/**
- * @brief 基础块分配辅助函数
+ * @brief 基础块分配
  * @ingroup Container
  * @details 根据指定的大小和单位，分配容量并生成分区信息。（事实上它只是根据指定大小生成了一个分区信息，没有真的分配块，问就是有些存储类型不支持动态分配）
  * @tparam ContainerType 目标容器
  * @param[in] Size 请求分配的大小
  * @param[in] Unit 大小的单位，默认为块
+ * @param StartPoint 起始点（可选）
  * @return PartitionInfo 描述新分配区域的分区信息
  * @note Size为0时，它确实分配了0个块，分配的结果就是Dst的容量为0但分区表写入了内容，一个大小为0的分区。 exp(💧*ln(😄))<br>
  *       从OS的层面来看，这样子也被定义为分配成功，因此，这很河里（雾<br>
  *       但这样即使完成了分配，C艹也不会允许你直接操作一个大小为0的分区（x<br>
  *       PS：C语言的语境中malloc(x if x < 0)也非常河里，产生的结果看凉心编译器（奇怪的行为
  */
-inline PartitionInfo __Balloc(std::size_t Size, AllocSizeUnit Unit = AllocBlock)
+inline PartitionInfo __Balloc(std::size_t Size, AllocSizeUnit Unit = AllocBlock, Address StartPoint = {0, 0})
 {
     if (!Size)
     {
-        return {{0, 0}, {0, 0}};
+        return 
+        {
+            StartPoint, 
+            __Addr_Seek_Reverse(StartPoint, 1, AllocBit)
+        };
     }
-    PartitionInfo Info;
-    Info.Begin = {0, 0};
-    switch (Unit)
+    Address EndPoint = __Addr_Seek(StartPoint, Size, Unit);
+    return
     {
-    case AllocBlock:
-        Info.End = {Size - 1, BSIZE - 1};
-        break;
-    case AllocByte:
-        Info.End = {Size / BBYTE, (Size % BBYTE) * 8 - 1};
-        break;
-    case AllocBit:
-        Info.End = {Size / BSIZE, (Size % BSIZE) - 1};
-        break;
-    }
-    if (Info.End.Offset >= BSIZE)
-    {
-        --Info.End.BlockSize;
-        Info.End.Offset = BSIZE - 1;
-    }
-    return Info;
+        StartPoint,
+        __Addr_Seek_Reverse(EndPoint, 1, AllocBit)
+    };
+}
+
+/**
+ * @brief 基础块分配（适用于动态容器，会实际分配空间）
+ * @ingroup Container
+ * @details 根据指定的大小和单位，分配容量并生成分区信息。
+ * @tparam ContainerType 容器类型，必须满足连续内存块且大小可变
+ * @param Container 目标容器
+ * @param[in] Size 请求分配的大小
+ * @param[in] Unit 大小的单位，默认为块
+ * @param StartPoint 起始点（可选）
+ * @return PartitionInfo 描述新分配区域的分区信息
+ */
+template<std::ranges::contiguous_range ContainerType>
+inline PartitionInfo __Bmalloc(ContainerType* Container, std::size_t Size, AllocSizeUnit Unit = AllocBlock, Address StartPoint = {0, 0})
+    requires IsDynamicContainer<ContainerType>
+{
+    PartitionInfo P = __Balloc(Size, Unit, StartPoint);
+    if (!Size) {return P;} // 分配了0个块
+    Container->resize(P.End.BlockIndex + (P.End.Offset ? 1 : 0));
+    if (P.End.Offset + 1 < BSIZE) {Container->back() &= ((1 << (P.End.Offset + 1)) - 1);}
+    return P;
 }
 
 _CONTAINER_END
