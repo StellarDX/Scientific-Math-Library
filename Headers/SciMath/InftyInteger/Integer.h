@@ -50,6 +50,7 @@
 #include <charconv>
 #include <meta>
 #include <ranges>
+#include <string_view>
 
 _80000_BEGIN
 _CONTAINER_BEGIN
@@ -89,10 +90,10 @@ public:
     */
     enum ToStringBase
     {
-        StrBinary  = 2,     ///< 二进制
-        StrOctal   = 8,     ///< 八进制
-        StrDecimal = 10,    ///< 十进制
-        StrHexadecimal = 16 ///< 十六进制
+        StrBinary      = 2,  ///< 二进制
+        StrOctal       = 8,  ///< 八进制
+        StrDecimal     = 10, ///< 十进制
+        StrHexadecimal = 16  ///< 十六进制
     };
 
 protected:
@@ -110,12 +111,14 @@ public:
         Panic<std::runtime_error>("BasicIntegerContainer：此类型不支持扩/缩容");
     }
 
+    MetadataType GetMetadata()const override{return Metadata;}
+
     /**
      * @brief 从字符串解析整数（通用实现）
      * @tparam ITy 目标整数类型或视图
      * @param Dst 目标存储位置
      * @param StrInput 输入字符串
-     * @param Func 具体的解析函数
+     * @param Func 具体的解析函数（可以自行实现）
      * @throws std::invalid_argument 如果字符串格式无效
      */
     template<typename ITy>
@@ -173,7 +176,7 @@ public:
      * @brief 转换为指定进制的字符串（通用函数）
      * @param Src 输入，可以是一个原生整型数字或一个块数组的View
      * @param Base 目标进制 (2, 8, 10, 16)
-     * @param Func 转换用的函数
+     * @param Func 转换用的函数（可以自行实现）
      * @return std::string 转换后的字符串，包含相应的前缀（如 0x, 0b）
      */
     template<typename ITy>
@@ -294,7 +297,6 @@ public:
     BlockArrayView GetRawData()override{return _Data.Blocks;}
     BlockArrayConstView GetRawData()const override{return _Data.Blocks;}
     BlockArrayConstView GetConstRawData()const override{return _Data.Blocks;}
-    MetadataType GetMetadata()const override{return Metadata;}
     constexpr size_t size()const override{return BlkArrSize;}
     constexpr size_t size_byte()const override{return sizeof(ValueType);}
     constexpr size_t size_bit()const override{return size_byte() * 8;}
@@ -367,55 +369,10 @@ protected:
      * @param Input 字符串
      * @return std::size_t 位数
      */
-    std::size_t __Precompute_Size_From_String(const std::string& Input)
+    std::size_t __Precompute_Size_From_String(const std::string_view& Input)
     {
-        static const double HexMulti = 4;
-        static const double DecMulti = 3.3219280948873623478703194294894;
-        static const double OctMulti = 3;
-        static const double BinMulti = 1;
-
-        double InputSize = Input.size();
-        std::size_t StartPos = 0;
-
-        if (Input.front() == '+' || Input.front() == '-')
-        {
-            StartPos = 1;
-            InputSize -= 1;
-        }
-
-        if (Input.substr(StartPos, 2) == "0x" || 
-            Input.substr(StartPos, 2) == "0X")
-        {
-            InputSize -= 2;
-            InputSize *= HexMulti;
-        }
-        else if (Input.substr(StartPos, 2) == "0b" ||
-            Input.substr(StartPos, 2) == "0B")
-        {
-            InputSize -= 2;
-            InputSize *= BinMulti;
-        }
-        else if (Input.substr(StartPos, 2) == "0o")
-        {
-            InputSize -= 2;
-            InputSize *= OctMulti;
-        }
-        else if (Input.size() >= 2 && Input.at(StartPos) == '0')
-        {
-            InputSize -= 1;
-            InputSize *= OctMulti;
-        }
-        else
-        {
-            InputSize *= DecMulti;
-        }
-
-        std::size_t OutputSize = std::size_t(InputSize);
-        if (InputSize - OutputSize)
-        {
-            ++OutputSize;
-        }
-        return OutputSize ? OutputSize : 1;
+        auto II = Input.begin();
+        auto IE = Input.end();
     }
 
 public:
@@ -492,8 +449,9 @@ public:
     BlockArrayView GetRawData()override{return _Data;}
     BlockArrayConstView GetRawData()const override{return _Data;}
     BlockArrayConstView GetConstRawData()const override{return _Data;}
-    MetadataType GetMetadata()const override{return Metadata;}
+
     size_t size()const override{return std::size(_Data);}
+
     size_t size_byte()const override
     {
         auto EndPoint = Metadata.Partitions.back().End;
@@ -501,6 +459,7 @@ public:
         return (EndPoint.BlockIndex * BBYTE) + (EndPoint.Offset / 8) + 
             (EndPoint.Offset % 8 ? 1 : 0);
     }
+
     size_t size_bit()const override
     {
         auto EndPoint = Metadata.Partitions.back().End;
