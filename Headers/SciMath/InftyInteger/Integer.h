@@ -43,14 +43,20 @@
 #include <SciMath/StellarDX-GMP/SMLDefs.h>
 #include <SciMath/StellarDX-GMP/Container.h>
 #include <SciMath/StellarDX-GMP/Memory.h>
+#include <type_traits>
 #include <concepts>
 #include <memory>
 #include <format>
 #include <charconv>
 #include <meta>
+#include <ranges>
 
 _80000_BEGIN
 _CONTAINER_BEGIN
+
+template <typename T>
+concept IsIntegerReference = std::is_reference_v<T> && 
+    std::is_integral_v<std::remove_reference_t<T>>;
 
 /**
  * @brief 整数容器基类
@@ -59,7 +65,21 @@ _CONTAINER_BEGIN
 class IntegerContainer : public NumericContainer
 {
 public:
-    using Mybase = NumericContainer;
+    using Mybase             = NumericContainer;
+    /**
+     * @brief 转换为字符串的函数签名模板
+     * @tparam ITy 输入数据类型
+     */
+    template<typename ITy> 
+    requires std::integral<ITy> || std::is_same<ITy, BlockArrayConstView>::value
+    using ToStringFuncType   = std::to_chars_result(char*, char*, ITy, int);
+    /**
+     * @brief 从字符串解析的函数签名模板
+     * @tparam IRef 引用或视图类型
+     */
+    template<typename IRef> 
+    requires IsIntegerReference<IRef> || std::is_same<IRef, BlockArrayView>::value
+    using FromStringFuncType = std::from_chars_result(const char*, const char*, IRef, int);
 
     /// @brief 类型名称标识
     constexpr static const auto NType = "Integer";
@@ -89,6 +109,116 @@ public:
     {
         Panic<std::runtime_error>("BasicIntegerContainer：此类型不支持扩/缩容");
     }
+
+    /**
+     * @brief 从字符串解析整数（通用实现）
+     * @tparam ITy 目标整数类型或视图
+     * @param Dst 目标存储位置
+     * @param StrInput 输入字符串
+     * @param Func 具体的解析函数
+     * @throws std::invalid_argument 如果字符串格式无效
+     */
+    template<typename ITy>
+    static void IntegerFromString(ITy Dst, std::string StrInput, FromStringFuncType<ITy> Func)
+        requires IsIntegerReference<ITy> || std::is_same<ITy, BlockArrayView>::value
+    {
+        if (StrInput.empty())
+        {
+            if constexpr (IsIntegerReference<ITy>) {Dst = 0;}
+            return;
+        }
+
+        std::size_t StartPos = 0;
+        int Base = 10;
+
+        if (StrInput.front() == '+' || StrInput.front() == '-') {StartPos = 1;}
+
+        if (StrInput.substr(StartPos, 2) == "0x" || 
+            StrInput.substr(StartPos, 2) == "0X")
+        {
+            Base = 16;
+            StrInput.erase(StartPos, 2);
+        }
+        else if (StrInput.substr(StartPos, 2) == "0b" ||
+            StrInput.substr(StartPos, 2) == "0B")
+        {
+            Base = 2;
+            StrInput.erase(StartPos, 2);
+        }
+        else if (StrInput.substr(StartPos, 2) == "0o" ||
+            StrInput.substr(StartPos, 2) == "0O")
+        {
+            Base = 8;
+            StrInput.erase(StartPos, 2);
+        }
+        else if (StrInput.size() >= 2 && StrInput.at(StartPos) == '0')
+        {
+            Base = 8;
+            StrInput.erase(StartPos, 1);
+        }
+        
+        if (!StrInput.empty())
+        {
+            auto Result = Func(
+                StrInput.c_str(), StrInput.c_str() + StrInput.size(), Dst, Base);
+            if (Result.ec != std::errc())
+            {
+                Panic("无效的整数字符串");
+            }
+        }
+        else {Panic("无效的整数字符串");}
+    }
+
+    /**
+     * @brief 转换为指定进制的字符串（通用函数）
+     * @param Src 输入，可以是一个原生整型数字或一个块数组的View
+     * @param Base 目标进制 (2, 8, 10, 16)
+     * @param Func 转换用的函数
+     * @return std::string 转换后的字符串，包含相应的前缀（如 0x, 0b）
+     */
+    template<typename ITy>
+    static std::string IntegerToString(ITy Src, ToStringBase Base, ToStringFuncType<ITy> Func)
+        requires std::integral<ITy> || std::is_same<ITy, BlockArrayConstView>::value // 大数存储全部抽象为view
+    {
+        std::size_t SizeBit;
+        if constexpr (std::integral<ITy>) {SizeBit = 8 * sizeof(ITy);}
+        else {SizeBit = BSIZE * Src.size();}
+
+        std::size_t BufSize = std::size_t(SizeBit + 10);
+        std::shared_ptr<char[]> Buffer(new char[BufSize]);
+        auto [Ptr, Err] = Func(Buffer.get(), Buffer.get() + BufSize, Src, int(Base));
+        *Ptr = '\0';
+        std::string Result{Buffer.get()};
+        std::size_t InsertPrefixPos = 0;
+        if (Result.front() == '-') {InsertPrefixPos = 1;}
+
+        switch (Base)
+        {
+        case IntegerContainer::StrBinary:
+            Result.insert(InsertPrefixPos, "0b");
+            break;
+        case IntegerContainer::StrOctal:
+            Result.insert(InsertPrefixPos, "0");
+            break;
+        case IntegerContainer::StrDecimal:
+            return Result;
+            break;
+        case IntegerContainer::StrHexadecimal:
+            std::transform(Result.begin(), Result.end(), Result.begin(),
+                [](char c){return toupper(c);});
+            Result.insert(InsertPrefixPos, "0x");
+            break;
+        }
+
+        return Result;
+    }
+
+    /**
+     * @brief 转换为指定进制的字符串
+     * @param Base 目标进制 (2, 8, 10, 16)
+     * @return std::string 转换后的字符串，包含相应的前缀（如 0x, 0b）
+     */
+    virtual std::string ToString(ToStringBase Base)const = 0;
 };
 
 /**
@@ -123,7 +253,7 @@ protected:
 public:
     /**
      * @brief 默认构造函数
-     * @details 初始化元数据
+     * @details 填写元数据
      */
     BasicIntegerContainer()
     {
@@ -147,50 +277,18 @@ public:
 
     /**
      * @brief 从字符串构造
-     * @param StrInput 输入字符串，支持"0b"(二进制)，"0"(八进制)和"0x"(十六进制)前缀
-     * @details 自动检测前缀并解析数值
+     * @param StrInput 输入字符串
+     * @details 支持以下前缀自动检测：
+     *          - "0x" 或 "0X": 十六进制
+     *          - "0b" 或 "0B": 二进制
+     *          - "0": 八进制 (仅当后续字符存在时)
+     *          - 其他: 十进制
+     * @throws std::invalid_argument 如果字符串格式无效或超出类型范围
      */
     BasicIntegerContainer(std::string StrInput) 
         : BasicIntegerContainer()
     {
-        if (StrInput.empty())
-        {
-            _Data.RawData = 0;
-            return;
-        }
-
-        std::size_t StartPos = 0;
-        int Base = 10;
-
-        if (StrInput.front() == '+' || StrInput.front() == '-') {StartPos = 1;}
-
-        if (StrInput.substr(StartPos, 2) == "0x")
-        {
-            Base = 16;
-            StrInput.erase(StartPos, 2);
-        }
-        else if (StrInput.substr(StartPos, 2) == "0b")
-        {
-            Base = 2;
-            StrInput.erase(StartPos, 2);
-        }
-        else if (StrInput.size() >= 2 && StrInput.at(StartPos) == '0')
-        {
-            Base = 8;
-            StrInput.erase(StartPos, 1);
-        }
-        
-        if (!StrInput.empty())
-        {
-            auto Result = std::from_chars(
-                StrInput.c_str(), StrInput.c_str() + StrInput.size(), 
-                _Data.RawData, Base);
-            if (Result.ec != std::errc())
-            {
-                Panic("无效的整数字符串");
-            }
-        }
-        else {Panic("无效的整数字符串");}
+        IntegerFromString<ValueType&>(_Data.RawData, StrInput, std::from_chars);
     }
 
     BlockArrayView GetRawData()override{return _Data.Blocks;}
@@ -215,43 +313,15 @@ public:
         }
     }
 
-    /**
-     * @brief 转换为指定进制的字符串
-     * @param Base 目标进制
-     * @return std::string 转换后的字符串，包含相应的前缀（如 0x, 0b）
-     */
-    std::string ToString(ToStringBase Base)const
+    std::string ToString(ToStringBase Base)const override
     {
-        std::size_t BufSize = std::size_t(size_bit() + 10);
-        std::shared_ptr<char[]> Buffer(new char[BufSize]);
-        auto [Ptr, Err] = std::to_chars(Buffer.get(), Buffer.get() + BufSize, _Data.RawData, int(Base));
-        *Ptr = '\0';
-        std::string Result{Buffer.get()};
-        std::size_t InsertPrefixPos = 0;
-        if (Result.front() == '-') {InsertPrefixPos = 1;}
-
-        switch (Base)
-        {
-        case IntegerContainer::StrBinary:
-            Result.insert(1, "0b");
-            break;
-        case IntegerContainer::StrOctal:
-            Result.insert(1, "0");
-            break;
-        case IntegerContainer::StrDecimal:
-            return Result;
-            break;
-        case IntegerContainer::StrHexadecimal:
-            std::transform(Result.begin(), Result.end(), Result.begin(),
-                [](char c){return toupper(c);});
-            Result.insert(1, "0x");
-            break;
-        }
-
-        return Result;
+        return IntegerToString(_Data.RawData, Base, std::to_chars);
     }
 
-    std::string ToString()const override {return ToString(StrDecimal);}
+    std::string ToString()const override
+    {
+        return IntegerToString(_Data.RawData, StrDecimal, std::to_chars);
+    }
 };
 
 /**
@@ -259,6 +329,7 @@ public:
  * @ingroup IPZ
  * @tparam ContainerType 底层存储容器，需要满足存储用的容器是连续内存块
  * @details 支持动态大小的整数存储，适用于大数运算。
+ * @note 使用非变长容器（含外部链接）构造时，强制32位对齐，变长容器不受此限制
  */
 template<std::ranges::contiguous_range ContainerType>
 class InftyIntegerContainer : public IntegerContainer
@@ -270,6 +341,10 @@ public:
 protected:
     ValueType _Data; ///< 动态数据存储
 
+    /**
+     * @brief 调整大小实现（非动态容器）
+     * @throws std::runtime_error 总是抛出异常，因为非动态容器不支持扩缩容
+     */
     void _Resize(std::size_t Partition, size_t Size, AllocSizeUnit Unit)
     {
         Panic<std::runtime_error>(
@@ -277,13 +352,77 @@ protected:
             std::meta::display_string_of(^^ContainerType)).c_str());
     }
 
+    /**
+     * @brief 调整大小实现（动态容器）
+     * @details 重新分配内存并更新元数据分区信息（保留数据）
+     */
     void _Resize(std::size_t Partition, size_t Size, AllocSizeUnit Unit)
         requires IsDynamicContainer<ContainerType>
     {
         Metadata.Partitions.front() = __Bmalloc(&_Data, Size, Unit);
     }
 
+    /**
+     * @brief 根据字符串预计算需要的位数
+     * @param Input 字符串
+     * @return std::size_t 位数
+     */
+    std::size_t __Precompute_Size_From_String(const std::string& Input)
+    {
+        static const double HexMulti = 4;
+        static const double DecMulti = 3.3219280948873623478703194294894;
+        static const double OctMulti = 3;
+        static const double BinMulti = 1;
+
+        double InputSize = Input.size();
+        std::size_t StartPos = 0;
+
+        if (Input.front() == '+' || Input.front() == '-')
+        {
+            StartPos = 1;
+            InputSize -= 1;
+        }
+
+        if (Input.substr(StartPos, 2) == "0x" || 
+            Input.substr(StartPos, 2) == "0X")
+        {
+            InputSize -= 2;
+            InputSize *= HexMulti;
+        }
+        else if (Input.substr(StartPos, 2) == "0b" ||
+            Input.substr(StartPos, 2) == "0B")
+        {
+            InputSize -= 2;
+            InputSize *= BinMulti;
+        }
+        else if (Input.substr(StartPos, 2) == "0o")
+        {
+            InputSize -= 2;
+            InputSize *= OctMulti;
+        }
+        else if (Input.size() >= 2 && Input.at(StartPos) == '0')
+        {
+            InputSize -= 1;
+            InputSize *= OctMulti;
+        }
+        else
+        {
+            InputSize *= DecMulti;
+        }
+
+        std::size_t OutputSize = std::size_t(InputSize);
+        if (InputSize - OutputSize)
+        {
+            ++OutputSize;
+        }
+        return OutputSize ? OutputSize : 1;
+    }
+
 public:
+    /**
+     * @brief 填写元数据
+     * @param Signed 是否有符号
+     */
     InftyIntegerContainer(bool Signed)
     {
         Metadata.TypeName = "InftyInteger";
@@ -304,14 +443,14 @@ public:
         : InftyIntegerContainer(Signed)
     {
         Metadata.Partitions = {__Balloc(std::size(Value), AllocBlock)};
-        std::copy(std::begin(Value), std::end(Value), _Data.begin());
-    }
-
-    InftyIntegerContainer(const ValueType& Value = ValueType(), bool Signed = 1)
-        requires IsDynamicContainer<ContainerType> : InftyIntegerContainer(Signed)
-    {
-        Metadata.Partitions = {__Balloc(std::size(Value), AllocBlock)};
-        _Data = Value;
+        if constexpr (IsDynamicContainer<ContainerType> || std::ranges::view<ContainerType>)
+        {
+            _Data = Value;
+        }
+        else
+        {
+            std::copy(std::begin(Value), std::end(Value), std::begin(_Data));
+        }
     }
 
     /**
@@ -330,11 +469,24 @@ public:
     /**
      * @brief 从字符串构造
      * @param InputStr 输入字符串
+     * @param Signed 是否有符号
      * @todo 实现大数字符串解析逻辑
      */
-    InftyIntegerContainer(std::string InputStr)
+    InftyIntegerContainer(std::string InputStr, bool Signed = 1)
+        : InftyIntegerContainer(Signed)
     {
-        // TODO
+        if constexpr (IsDynamicContainer<ValueType>)
+        {
+            Metadata.Partitions = {__Bmalloc(&_Data, __Precompute_Size_From_String(InputStr), AllocBit)};
+        }
+        IntegerFromString(BlockArrayView{_Data}, InputStr, BlockArrayFromString);
+        if constexpr (IsDynamicContainer<ValueType>)
+        {
+            if (_Data.size() > 1 && _Data.back() == 0) [[unlikely]]
+            {
+                Adjust(0, _Data.size() - 1, AllocBlock);
+            }
+        }
     }
     
     BlockArrayView GetRawData()override{return _Data;}
@@ -376,7 +528,25 @@ public:
 
     std::string ToString()const override
     {
-        return std::string(); // 占位符，TODO
+        return IntegerToString(BlockArrayConstView{_Data}, StrDecimal, BlockArrayToString);
+    }
+
+    std::string ToString(ToStringBase Base)const override
+    {
+        return IntegerToString(BlockArrayConstView{_Data}, Base, BlockArrayToString);
+    }
+
+    static std::to_chars_result BlockArrayToString(char* __first, char* __last, 
+        BlockArraySrcView __value, int __base = 10)
+    {
+        *__first = '0'; // 占位符，TODO
+        return std::to_chars_result{__first + 1};
+    }
+
+    static std::from_chars_result BlockArrayFromString(const char* __first, const char* __last, 
+        BlockArrayView __value, int __base = 10)
+    {
+        return std::from_chars_result{__first}; // 占位符，TODO
     }
 };
 
