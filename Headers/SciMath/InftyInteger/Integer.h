@@ -42,6 +42,7 @@
 
 #include <SciMath/StellarDX-GMP/SMLDefs.h>
 #include <SciMath/StellarDX-GMP/Container.h>
+#include <SciMath/StellarDX-GMP/Memory.h>
 #include <concepts>
 #include <memory>
 #include <format>
