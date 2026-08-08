@@ -57,6 +57,7 @@ _CONTAINER_BEGIN
 /**
  * @brief 动态容器概念约束
  * @details 要求容器类型支持resize操作且返回void。
+ * @ingroup Container
  * @tparam ContainerType 容器类型
  */
 template<typename ContainerType>
