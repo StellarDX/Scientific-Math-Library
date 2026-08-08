@@ -88,15 +88,24 @@ struct Address
     std::size_t Offset;    ///< 块内偏移/不足整块的部分
 };
 
-static const Address __Addr_Begin = {0, 0}; ///< 地址的最小位置，也是正向寻址的开始位置
+/**
+ * @brief 地址的最小位置，也是正向寻址的开始位置
+ * @ingroup Container
+ */
+static const Address __Addr_Begin = {0, 0};
+/**
+ * @brief 地址的最大位置，也是反向寻址的结束位置
+ * @ingroup Container
+ */
 static const Address __Addr_REnd = 
 {
     std::numeric_limits<std::size_t>::max(),
     BSIZE - 1
-}; ///< 地址的最大位置，也是反向寻址的结束位置
+};
 
 /**
  * @brief 正向寻址
+ * @ingroup Container
  * @param Pos 起始地址
  * @param Offset 偏移量
  * @param Unit 偏移量的单位
@@ -132,6 +141,7 @@ inline constexpr Address __Addr_Seek(Address Pos, std::size_t Offset, AllocSizeU
 
 /**
  * @brief 反向寻址
+ * @ingroup Container
  * @param Pos 起始地址
  * @param Offset 偏移量
  * @param Unit 偏移量的单位
@@ -167,6 +177,7 @@ inline constexpr Address __Addr_Seek_Reverse(Address Pos, std::size_t Offset, Al
 
 /**
  * @brief 地址比较
+ * @ingroup Container
  * @param A 地址 A
  * @param B 地址 B
  * @return 比较结果
