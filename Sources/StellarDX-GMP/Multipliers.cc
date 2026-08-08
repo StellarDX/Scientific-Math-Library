@@ -78,13 +78,20 @@ _MULTIPLIER_BEGIN
 void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)const
 {
     BlockType C = 0;
+    Run(DST, AX, BX, &C);
+    DST.at(AX.size()) = C;
+}
+
+void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, BlockType* CF)const
+{
+    BlockType C = 0;
     for (size_t i = 0; i < AX.size(); ++i)
     {
         ExtBlockType P64 = ExtBlockType(AX.at(i)) * BX + C;
         C = P64 >> BSIZE;
         DST.at(i) = BlockType(P64);
     }
-    DST.at(AX.size()) = C;
+    *CF = C;
 }
 
 void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX)const
@@ -101,16 +108,16 @@ void LongMultiplier::Run(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrc
 
 _MULTIPLIER_END
 
-void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const SingleBlockMultiplier* MULER)
+void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, BlockType* CF, const SingleBlockMultiplier* MULER)
 {
     if (MULER)
     {
-        MULER->Run(DST, AX, BX);
+        MULER->Run(DST, AX, BX, CF);
         return;
     }
 
     _MULTIPLIER LongMultiplier Mul;
-    Mul.Run(DST, AX, BX);
+    Mul.Run(DST, AX, BX, CF);
 }
 
 void MUL(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, const Multiplier* MULER)

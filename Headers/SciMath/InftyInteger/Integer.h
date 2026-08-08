@@ -37,12 +37,17 @@
 
 #pragma once
 
+#include "SciMath/StellarDX-GMP/Logics.h"
 #ifndef __INTEGER__
 #define __INTEGER__
 
 #include <SciMath/StellarDX-GMP/SMLDefs.h>
 #include <SciMath/StellarDX-GMP/Container.h>
 #include <SciMath/StellarDX-GMP/Memory.h>
+#include <SciMath/StellarDX-GMP/Adders.h>
+#include <SciMath/StellarDX-GMP/Multipliers.h>
+#include <algorithm>
+#include <iterator>
 #include <type_traits>
 #include <concepts>
 #include <memory>
@@ -344,24 +349,35 @@ protected:
     ValueType _Data; ///< 动态数据存储
 
     /**
-     * @brief 调整大小实现（非动态容器）
-     * @throws std::runtime_error 总是抛出异常，因为非动态容器不支持扩缩容
+     * @brief 
+     * @param b 
+     * @return constexpr auto 
      */
-    void _Resize(std::size_t Partition, size_t Size, AllocSizeUnit Unit)
+    static constexpr auto __Base_Pow_Of_2(unsigned b)
     {
-        Panic<std::runtime_error>(
-            std::format("InftyIntegerContainer: 当前存储类型为{}，此类型不支持扩/缩容",
-            std::meta::display_string_of(^^ContainerType)).c_str());
-    }
+        switch (b)
+        {
+            case 2: return 1;
+            case 4: return 2;
+            case 8: return 3;
+            case 16: return 4;
+            case 32: return 5;
+            case 64: return 6;
+            case 128: return 7;
+            case 256: return 8;
+            default: return 0;
+        }
+    };
 
-    /**
-     * @brief 调整大小实现（动态容器）
-     * @details 重新分配内存并更新元数据分区信息（保留数据）
-     */
-    void _Resize(std::size_t Partition, size_t Size, AllocSizeUnit Unit)
-        requires IsDynamicContainer<ContainerType>
+    static auto __generate_base_info (BlockType b)
     {
-        Metadata.Partitions.front() = __Bmalloc(&_Data, Size, Unit);
+        size_t Exp = 1;
+        BlockType M = BMASK / b, P = b;
+        for (; P <= M; ++Exp)
+        {
+            P *= b;
+        }
+        return std::tuple{Exp, P};
     }
 
     /**
@@ -369,10 +385,210 @@ protected:
      * @param Input 字符串
      * @return std::size_t 位数
      */
-    std::size_t __Precompute_Size_From_String(const std::string_view& Input)
+    static std::size_t __Precompute_Size_From_String(const std::string_view& Input)
     {
-        auto II = Input.begin();
+        auto II = std::find_if(Input.begin(), Input.end(), [](char c){return !(::isspace(c));});
         auto IE = Input.end();
+        if (II == IE) {return 0;} // 说明字符串里只有空格
+
+        if (*II == '+' || *II == '-') {++II;}
+        if (II == IE) {return 0;} // 说明字符串里只有一个+或一个-
+
+        int Base = 10;
+        if (*II == '0')
+        {
+            if (II + 1 != IE && (*(II + 1) == 'x' || *(II + 1) == 'X'))
+            {
+                II += 2;
+                if (II == IE) {return 0;} // 说明字符串里只有一个0x
+                Base = 16;
+            }
+            else if (II + 1 != IE && (*(II + 1) == 'b' || *(II + 1) == 'B'))
+            {
+                II += 2;
+                if (II == IE) {return 0;} // 说明字符串里只有一个0b
+                Base = 2;
+            }
+            else if (II + 1 != IE && (*(II + 1) == 'o' || *(II + 1) == 'O'))
+            {
+                II += 2;
+                if (II == IE) {return 0;} // 说明字符串里只有一个0o
+                Base = 8;
+            }
+            else
+            {
+                II += 1;
+                if (II == IE) {return 1;} // 说明字符串里只有一个0
+                Base = 8;
+            }
+        }
+        
+        // static constexpr unsigned BasePowOf2[17] // sorry, unimplemented: 不平凡的代理初始值设定不受支持
+        // {
+        //     [2] = 1, [4] = 2, [8] = 3, [16] = 4
+        //     //[32] = 5, [64] = 6, [128] = 7, [256] = 8 // 到不了这么大
+        // };
+
+        auto DN = std::distance(II, IE);
+        auto Bits = __Base_Pow_Of_2(Base);
+
+        if (Bits > 0)
+        {
+            return (DN * Bits + BSIZE - 1) / BSIZE;
+        }
+        else [[likely]]
+        {
+            auto [Exp, BB] = __generate_base_info(Base);
+            return (DN + Exp - 1) / Exp;
+        }
+    }
+
+    static constexpr void 
+        __from_chars_pow2_base(const char* __first, const char* __last, BlockArrayView __val,
+        int __bwidth)
+    {
+        // 使用GMP实现
+        BlockType Block = 0;
+        std::size_t Shift = 0;
+        auto OI = __val.begin();
+        for (auto II = std::reverse_iterator{__last}; II != std::reverse_iterator{__first}; ++II)
+        {
+            Block |= BlockType(*II) << Shift;
+            Shift += __bwidth;
+            if (Shift >= BSIZE)
+            {
+                Shift -= BSIZE;
+                *OI = Block;
+                ++OI;
+                // Next line is correct also if shift == 0,
+                // bits == 8, and mp_limb_t == unsigned char.
+                Block = (unsigned int)(*II) >> (__bwidth - Shift);
+            }
+        }
+        if (Block) {*OI = Block;} // 是0的情况后续会自动处理
+    }
+
+    static constexpr void __declspec(optimize("O2")) 
+    // 这个是十进制专用的，性能相对2^n进制会很拉，因此开优化（当然再怎么优化也夯不过标准库）
+        __from_chars_alnum(const char* __first, const char* __last, BlockArrayView __val,
+        int __base, unsigned __exp, BlockType __bb)
+    {
+        // 使用GMP实现
+        auto sn = std::distance(__first, __last);
+        unsigned k = 1 + (sn - 1) % __exp;
+        BlockType w = *__first;
+        ++__first;
+        --k;
+        while (k != 0)
+        {
+            w = w * __base + (*__first);
+            ++__first;
+            --k;
+        }
+
+        __val.front() = w;
+        size_t rn = 1;
+
+        while (__first != __last)
+        {
+            BlockType cy, cym, cya;
+            w = *__first;
+            ++__first;
+            for (k = 1; k < __exp; ++k)
+            {
+                w = w * __base + (*__first);
+                ++__first;
+            }
+            ALU::MUL1(__val.subspan(0, rn), __val.subspan(0, rn), __bb, &cym);
+            ALU::INC(__val.subspan(0, rn), w, &cya);
+            cy = cym + cya;
+            if (cy > 0)
+            {
+                __val.at(rn) = cy;
+                ++rn;
+            }
+        }
+    }
+
+    static std::to_chars_result BlockArrayToString(char* __first, char* __last, 
+        BlockArraySrcView __value, int __base = 10)
+    {
+
+        *__first = '0'; // 占位符，TODO
+        return std::to_chars_result{__first + 1};
+    }
+
+    static std::from_chars_result BlockArrayFromString(const char* __first, const char* __last, 
+        BlockArrayView __value, int __base = 10)
+    {
+        // 查找第一个无效字符作为结束位置
+        std::from_chars_result Res;
+        switch (__base)
+        {
+        case 2:
+            Res.ptr = std::find_if(__first, __last, [](char c)
+            {
+                return !(c == '+' || c == '-' || c == '0' || c == '1');
+            });
+            break;
+        case 8:
+            Res.ptr = std::find_if(__first, __last, [](char c)
+            {
+                return !(c == '+' || c == '-' || (c >= '0' && c <= '7'));
+            });
+            break;
+        case 10:
+            Res.ptr = std::find_if(__first, __last, [](char c)
+            {
+                return !(c == '+' || c == '-' || (c >= '0' && c <= '9'));
+            });
+            break;
+        case 16:
+            Res.ptr = std::find_if(__first, __last, [](char c)
+            {
+                return !(c == '+' || c == '-' || (c >= '0' && c <= '9') || 
+                    (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
+            });
+            break;
+        }
+        __last = Res.ptr;
+
+        // 预处理字符串
+        bool Negative = 0;
+        if (*__first == '+' || *__first == '-')
+        {
+            Negative = *__first == '-';
+            ++__first;
+        }
+        std::string PreprocessedString(__first, __last);
+        for (auto sp = PreprocessedString.begin(); sp != PreprocessedString.end(); ++sp)
+        {
+            unsigned digit;
+            if (::isspace((unsigned char)(*sp))) {continue;}
+            else if (*sp >= '0' && *sp <= '9') {digit = *sp - '0';}
+            else if (*sp >= 'a' && *sp <= 'f') {digit = *sp - 'a';}
+            else if (*sp >= 'A' && *sp <= 'F') {digit = *sp - 'A' + 10;}
+            else {digit = __base;} // fail
+            *sp = digit;
+        }
+
+        // 转换
+        auto First = PreprocessedString.c_str();
+        auto Last = PreprocessedString.c_str() + PreprocessedString.size();
+        auto bits = __Base_Pow_Of_2(__base);
+        if (bits)
+        {
+            __from_chars_pow2_base(First, Last, __value, bits);
+        }
+        else
+        {
+            auto [Exp, BB] = __generate_base_info(__base);
+            __from_chars_alnum(First, Last, __value, __base, Exp, BB);
+        }
+
+        if (Negative) {ALU::NEG(__value, __value);}
+
+        return Res;
     }
 
 public:
@@ -427,14 +643,14 @@ public:
      * @brief 从字符串构造
      * @param InputStr 输入字符串
      * @param Signed 是否有符号
-     * @todo 实现大数字符串解析逻辑
+     * @note 使用字符串构造的数字强制32位对齐
      */
     InftyIntegerContainer(std::string InputStr, bool Signed = 1)
         : InftyIntegerContainer(Signed)
     {
         if constexpr (IsDynamicContainer<ValueType>)
         {
-            Metadata.Partitions = {__Bmalloc(&_Data, __Precompute_Size_From_String(InputStr), AllocBit)};
+            Metadata.Partitions = {__Bmalloc(&_Data, __Precompute_Size_From_String(InputStr))};
         }
         IntegerFromString(BlockArrayView{_Data}, InputStr, BlockArrayFromString);
         if constexpr (IsDynamicContainer<ValueType>)
@@ -468,7 +684,16 @@ public:
 
     void Adjust(std::size_t Partition, size_t Size, AllocSizeUnit Unit)override
     {
-        _Resize(Partition, Size, Unit);
+        if constexpr (IsDynamicContainer<ContainerType>)
+        {
+            Metadata.Partitions.front() = __Bmalloc(&_Data, Size, Unit);
+        }
+        else
+        {
+            Panic<std::runtime_error>(
+                std::format("InftyIntegerContainer: 当前存储类型为{}，此类型不支持扩/缩容",
+                std::meta::display_string_of(^^ContainerType)).c_str());
+        }
     }
 
     void Write(BlockArrayConstView NewData)override
@@ -493,19 +718,6 @@ public:
     std::string ToString(ToStringBase Base)const override
     {
         return IntegerToString(BlockArrayConstView{_Data}, Base, BlockArrayToString);
-    }
-
-    static std::to_chars_result BlockArrayToString(char* __first, char* __last, 
-        BlockArraySrcView __value, int __base = 10)
-    {
-        *__first = '0'; // 占位符，TODO
-        return std::to_chars_result{__first + 1};
-    }
-
-    static std::from_chars_result BlockArrayFromString(const char* __first, const char* __last, 
-        BlockArrayView __value, int __base = 10)
-    {
-        return std::from_chars_result{__first}; // 占位符，TODO
     }
 };
 

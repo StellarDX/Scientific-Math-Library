@@ -208,6 +208,15 @@ __interface SingleBlockMultiplier
      * @param BX  乘数2
      */
     virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)const = 0;
+
+    /**
+     * @brief 乘法器主函数（不改变长度的版本）
+     * @param DST 积
+     * @param AX  乘数1
+     * @param BX  乘数2
+     * @param CF  最高位进位
+     */
+    virtual void Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, BlockType* CF)const = 0;
 };
 
 /**
@@ -265,6 +274,11 @@ public:
      * @brief 单块乘法
      */
     void Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX)const override;
+
+    /**
+     * @brief 单块乘法（带进位）
+     */
+    void Run(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, BlockType* CF)const override;
 
     /**
      * @brief 多块乘法
@@ -390,12 +404,13 @@ _MULTIPLIER_END
  * 
  * @details 根据输入参数执行单块乘法。
  * 
- * @param[out] DST   积的结果数组视图。
- * @param[in]  AX    被乘数数组视图。
- * @param[in]  BX    乘数（单块）。
+ * @param[out] DST   积的结果数组视图
+ * @param[in]  AX    被乘数数组视图
+ * @param[in]  BX    乘数（单块）
+ * @param[out] CF    进位输出
  * @param[in]  MULER 用户指定的乘法器实例。若为nullptr，则根据输入长度智能选择。
  */
-void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const SingleBlockMultiplier* MULER = nullptr);
+void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, BlockType* CF = nullptr, const SingleBlockMultiplier* MULER = nullptr);
 
 /**
  * @brief 乘法器
@@ -404,9 +419,9 @@ void MUL1(BlockArrayView DST, BlockArraySrcView AX, BlockType BX, const SingleBl
  * @details 根据输入参数执行多块乘法。
  *          （如在LongMultiplier, ToomCookMultiplier, FFTMultiplier 之间切换）。
  * 
- * @param[out] DST   积的结果数组视图。
- * @param[in]  AX    被乘数数组视图。
- * @param[in]  BX    乘数数组视图。
+ * @param[out] DST   积的结果数组视图
+ * @param[in]  AX    被乘数数组视图
+ * @param[in]  BX    乘数数组视图
  * @param[in]  MULER 用户指定的乘法器实例。若为 nullptr，则根据输入长度智能选择。
  */
 void MUL(BlockArrayView DST, BlockArraySrcView AX, BlockArraySrcView BX, const Multiplier* MULER = nullptr);
