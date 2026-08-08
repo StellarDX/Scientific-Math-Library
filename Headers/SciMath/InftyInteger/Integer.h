@@ -146,20 +146,18 @@ public:
 
         if (StrInput.front() == '+' || StrInput.front() == '-') {StartPos = 1;}
 
-        if (StrInput.substr(StartPos, 2) == "0x" || 
-            StrInput.substr(StartPos, 2) == "0X")
+        auto Prefix = StrInput.substr(StartPos, 2);
+        if (Prefix == "0x" ||  Prefix == "0X")
         {
             Base = 16;
             StrInput.erase(StartPos, 2);
         }
-        else if (StrInput.substr(StartPos, 2) == "0b" ||
-            StrInput.substr(StartPos, 2) == "0B")
+        else if (Prefix == "0b" || Prefix == "0B")
         {
             Base = 2;
             StrInput.erase(StartPos, 2);
         }
-        else if (StrInput.substr(StartPos, 2) == "0o" ||
-            StrInput.substr(StartPos, 2) == "0O")
+        else if (Prefix == "0o" || Prefix == "0O")
         {
             Base = 8;
             StrInput.erase(StartPos, 2);
