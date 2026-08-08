@@ -44,7 +44,9 @@
 #include <SciMath/StellarDX-GMP/Container.h>
 #include <SciMath/StellarDX-GMP/Memory.h>
 #include <SciMath/StellarDX-GMP/Adders.h>
+#include <SciMath/StellarDX-GMP/Subtractors.h>
 #include <SciMath/StellarDX-GMP/Multipliers.h>
+#include <SciMath/StellarDX-GMP/Dividers.h>
 #include <SciMath/StellarDX-GMP/Logics.h>
 #include <algorithm>
 #include <iterator>
@@ -58,6 +60,39 @@
 #include <string_view>
 
 _80000_BEGIN
+
+// 默认运算器
+
+/**
+ * @brief 默认加法器
+ * @ingroup IPZ
+ */
+extern std::shared_ptr<ALU::Adder> DefaultAdder;
+
+/**
+ * @brief 默认减法器
+ * @ingroup IPZ
+ */
+extern std::shared_ptr<ALU::Subtractor> DefaultSubtractor;
+
+/**
+ * @brief 默认单块乘法器
+ * @ingroup IPZ
+ */
+extern std::shared_ptr<ALU::SingleBlockMultiplier> DefaultSingleBlockMultiplier;
+
+/**
+ * @brief 默认乘法器
+ * @ingroup IPZ
+ */
+extern std::shared_ptr<ALU::Multiplier> DefaultMultiplier;
+
+/**
+ * @brief 默认除法器
+ * @ingroup IPZ
+ */
+extern std::shared_ptr<ALU::Divider> DefaultDivider;
+
 _CONTAINER_BEGIN
 
 /**
@@ -525,7 +560,8 @@ protected:
                 w = w * __base + (*__first);
                 ++__first;
             }
-            ALU::MUL1(__val.subspan(0, rn), __val.subspan(0, rn), __bb, &cym);
+            ALU::MUL1(__val.subspan(0, rn), __val.subspan(0, rn), __bb, &cym, 
+                DefaultSingleBlockMultiplier.get());
             ALU::INC(__val.subspan(0, rn), w, &cya);
             cy = cym + cya;
             if (cy > 0)

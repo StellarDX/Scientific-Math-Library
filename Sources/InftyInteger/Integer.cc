@@ -33,3 +33,16 @@
     GNU Lesser General Public License along with the Scientific Math Library.
     If not, see https://www.gnu.org/licenses/.
 */
+
+#include "SciMath/InftyInteger/Integer.h"
+
+_80000_BEGIN
+
+std::shared_ptr<ALU::Adder>      DefaultAdder      = nullptr;
+std::shared_ptr<ALU::Subtractor> DefaultSubtractor = nullptr;
+std::shared_ptr<ALU::Multiplier> DefaultMultiplier = nullptr;
+std::shared_ptr<ALU::Divider>    DefaultDivider    = nullptr;
+
+std::shared_ptr<ALU::SingleBlockMultiplier> DefaultSingleBlockMultiplier = nullptr;
+
+_80000_END
