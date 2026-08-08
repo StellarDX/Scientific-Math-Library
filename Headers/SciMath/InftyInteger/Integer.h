@@ -60,6 +60,10 @@
 _80000_BEGIN
 _CONTAINER_BEGIN
 
+/**
+ * @brief 概念：判断类型是否为整数引用
+ * @tparam T 待检查的类型
+ */
 template <typename T>
 concept IsIntegerReference = std::is_reference_v<T> && 
     std::is_integral_v<std::remove_reference_t<T>>;
@@ -349,9 +353,9 @@ protected:
     ValueType _Data; ///< 动态数据存储
 
     /**
-     * @brief 
-     * @param b 
-     * @return constexpr auto 
+     * @brief 计算基数的2的幂次指数
+     * @param b 基数
+     * @return constexpr auto 指数，如果不是2的幂则返回0
      */
     static constexpr auto __Base_Pow_Of_2(unsigned b)
     {
@@ -369,10 +373,15 @@ protected:
         }
     };
 
+    /**
+     * @brief 生成基数信息用于非2幂进制的转换
+     * @param b 基数
+     * @return std::tuple<size_t, BlockType> {exp is the corresponding exponent., P is the largest power of the base which fits in one limb}
+     */
     static auto __generate_base_info (BlockType b)
     {
-        size_t Exp = 1;
-        BlockType M = BMASK / b, P = b;
+        size_t Exp = 1; // exp is the corresponding exponent.
+        BlockType M = BMASK / b, P = b; // P is the largest power of the base which fits in one limb
         for (; P <= M; ++Exp)
         {
             P *= b;
@@ -381,9 +390,9 @@ protected:
     }
 
     /**
-     * @brief 根据字符串预计算需要的位数
+     * @brief 根据字符串预计算需要的块数
      * @param Input 字符串
-     * @return std::size_t 位数
+     * @return std::size_t 块数
      */
     static std::size_t __Precompute_Size_From_String(const std::string_view& Input)
     {
@@ -443,6 +452,13 @@ protected:
         }
     }
 
+    /**
+     * @brief 从2的幂进制字符串解析到块数组
+     * @param __first 起始指针
+     * @param __last 结束指针
+     * @param __val 目标块数组视图
+     * @param __bwidth 每个字符代表的位宽
+     */
     static constexpr void 
         __from_chars_pow2_base(const char* __first, const char* __last, BlockArrayView __val,
         int __bwidth)
@@ -467,7 +483,18 @@ protected:
         }
         if (Block) {*OI = Block;} // 是0的情况后续会自动处理
     }
-
+    
+    /**
+     * @brief 从字母数字进制字符串解析到块数组
+     * @param __first 起始指针
+     * @param __last 结束指针
+     * @param __val 目标块数组视图
+     * @param __base 基数
+     * @param __exp __generate_base_info预计算的指数
+     * @param __bb __generate_base_info预计算的基数幂值
+     * @see __generate_base_info
+     * @note 这个是十进制专用的，性能相对2^n进制会很拉，因此开优化（当然再怎么优化也夯不过标准库）
+     */
     static constexpr void __declspec(optimize("O2")) 
     // 这个是十进制专用的，性能相对2^n进制会很拉，因此开优化（当然再怎么优化也夯不过标准库）
         __from_chars_alnum(const char* __first, const char* __last, BlockArrayView __val,
@@ -510,6 +537,14 @@ protected:
         }
     }
 
+    /**
+     * @brief 将块数组转换为字符串
+     * @param __first 输出缓冲区起始
+     * @param __last 输出缓冲区结束
+     * @param __value 源块数组视图
+     * @param __base 目标进制
+     * @return std::to_chars_result 结果状态
+     */
     static std::to_chars_result BlockArrayToString(char* __first, char* __last, 
         BlockArraySrcView __value, int __base = 10)
     {
@@ -518,6 +553,14 @@ protected:
         return std::to_chars_result{__first + 1};
     }
 
+    /**
+     * @brief 从字符串解析到块数组
+     * @param __first 输入起始
+     * @param __last 输入结束
+     * @param __value 目标块数组视图
+     * @param __base 目标进制
+     * @return std::from_chars_result 解析结果
+     */
     static std::from_chars_result BlockArrayFromString(const char* __first, const char* __last, 
         BlockArrayView __value, int __base = 10)
     {
@@ -552,6 +595,11 @@ protected:
             break;
         }
         __last = Res.ptr;
+        if (__first == __last)
+        {
+            Res.ec = std::errc::invalid_argument;
+            return Res;
+        }
 
         // 预处理字符串
         bool Negative = 0;
@@ -561,6 +609,11 @@ protected:
             ++__first;
         }
         std::string PreprocessedString(__first, __last);
+        if (PreprocessedString.empty())
+        {
+            Res.ec = std::errc::invalid_argument;
+            return Res;
+        }
         for (auto sp = PreprocessedString.begin(); sp != PreprocessedString.end(); ++sp)
         {
             unsigned digit;
