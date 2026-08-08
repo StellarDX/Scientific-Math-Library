@@ -37,7 +37,6 @@
 
 #pragma once
 
-#include "SciMath/StellarDX-GMP/Logics.h"
 #ifndef __INTEGER__
 #define __INTEGER__
 
@@ -46,6 +45,7 @@
 #include <SciMath/StellarDX-GMP/Memory.h>
 #include <SciMath/StellarDX-GMP/Adders.h>
 #include <SciMath/StellarDX-GMP/Multipliers.h>
+#include <SciMath/StellarDX-GMP/Logics.h>
 #include <algorithm>
 #include <iterator>
 #include <type_traits>
@@ -62,6 +62,7 @@ _CONTAINER_BEGIN
 
 /**
  * @brief 概念：判断类型是否为整数引用
+ * @ingroup IPZ
  * @tparam T 待检查的类型
  */
 template <typename T>
